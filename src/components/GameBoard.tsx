@@ -3,24 +3,58 @@ import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
 import { saveGameResult } from '../utils/gameService';
+import { motion } from 'framer-motion';
+import Confetti from 'react-confetti';
 
 export const GameBoard: React.FC = () => {
   const [winningChoice, setWinningChoice] = useState<'left' | 'right'>('left');
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
   const { stats, updateStats } = useStats();
+  const [selectedChoice, setSelectedChoice] = useState<'left' | 'right' | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
     // Randomly select winning choice when component mounts
     setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
   }, []);
 
+  // Add countdown timer effect
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const nextGame = new Date();
+      nextGame.setUTCHours(24, 0, 0, 0);
+
+      const diff = nextGame.getTime() - now.getTime();
+      if (diff <= 0) return setTimeLeft("Game Available Now!");
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft(`Next game in: ${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleChoice = useCallback(async (choice: 'left' | 'right') => {
+    setSelectedChoice(choice);
     const won = choice === winningChoice;
     const newStreak = updateStats(won);
 
+    if (won) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000); // Hide confetti after 5s
+    }
+
     setGameState(won ? 'won' : 'lost');
-    setMessage(won ? 'You Win! See you tomorrow!' : 'Try Again Tomorrow!');
+    setMessage(won ? 'You Win!' : 'Try Again Tomorrow!');
 
     try {
       await saveGameResult(won, newStreak);
@@ -32,11 +66,26 @@ export const GameBoard: React.FC = () => {
   const resetGame = useCallback(() => {
     setGameState('playing');
     setMessage('');
+    setSelectedChoice(null); // Reset selected choice
     setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
   }, []);
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16">
+    <motion.div 
+      className="relative flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16"
+      animate={gameState === 'lost' ? {
+        x: [-5, 5, -5, 5, 0],
+        transition: { duration: 0.4 }
+      } : {}}
+    >
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
+      )}
       <StatsButton />
       
       {/* Title and Tagline */}
@@ -53,10 +102,22 @@ export const GameBoard: React.FC = () => {
       {/* Game Buttons Container */}
       <div className="flex gap-3 md:gap-6 items-center justify-center w-full max-w-2xl">
         {['left', 'right'].map((side) => (
-          <button
+          <motion.button
             key={side}
             onClick={() => handleChoice(side as 'left' | 'right')}
             disabled={gameState !== 'playing'}
+            whileTap={{ scale: 0.95 }}
+            animate={
+              selectedChoice === side && gameState !== 'playing'
+                ? { 
+                    scale: [1, 1.1, 1.05],
+                    transition: { duration: 0.3 }
+                  } 
+                : {
+                    scale: 1,
+                    transition: { duration: 0.3 }
+                  }
+            }
             className={`
               w-28 h-28 md:w-40 md:h-40
               rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
@@ -75,7 +136,15 @@ export const GameBoard: React.FC = () => {
                   }
                   active:scale-95
                 `
-                : 'bg-white/5 text-white/20 cursor-not-allowed'
+                : `
+                  cursor-not-allowed
+                  ${selectedChoice === side 
+                    ? gameState === 'won'
+                      ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                      : 'bg-red-500/20 text-red-300 border-red-500/30'
+                    : 'bg-white/5 text-white/20'
+                  }
+                `
               }
             `}
           >
@@ -83,35 +152,38 @@ export const GameBoard: React.FC = () => {
             <span className="text-2xl md:text-3xl opacity-90">
               {side === 'left' ? '←' : '→'}
             </span>
-          </button>
+          </motion.button>
         ))}
       </div>
 
-      {/* Fixed Height Results Container */}
-      <div className="h-32 flex flex-col items-center justify-center mt-6">
+      {/* Results and Countdown Container */}
+      <div className="h-40 flex flex-col items-center justify-start mt-6">
         {/* Message Display */}
         {message && (
-          <div 
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             className={`
               text-2xl md:text-3xl font-medium text-center 
-              flex items-center gap-2 justify-center
-              transition-all duration-300 ease-out
-              opacity-0 scale-95 animate-fade-in animate-delay-200
+              flex items-center gap-2 justify-center mb-2
               ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
             `}
           >
-            <span className="animate-[scale-105] transform-gpu">
-              {message}
-            </span>
+            <span>{message}</span>
             {gameState === 'won' ? (
               <CheckCircleIcon className="w-8 h-8 text-green-400" />
             ) : (
               <XCircleIcon className="w-8 h-8 text-red-400" />
             )}
-          </div>
+          </motion.div>
         )}
 
-        {/* Reset Button (with adjusted positioning) */}
+        {/* Countdown Timer */}
+        {gameState !== 'playing' && (
+          <div className="text-gray-400 text-sm">{timeLeft}</div>
+        )}
+
+        {/* Reset Button */}
         {gameState !== 'playing' && (
           <button
             onClick={resetGame}
@@ -125,6 +197,6 @@ export const GameBoard: React.FC = () => {
           </button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

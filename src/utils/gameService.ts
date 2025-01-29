@@ -8,31 +8,34 @@ interface GameResult {
 }
 
 export const saveGameResult = async (won: boolean, streak: number): Promise<boolean> => {
-  const payload = {
-    won,
-    streak,
-    played_at: new Date().toISOString()
+    const payload = [{
+      won,
+      streak,
+      played_at: new Date()
+    }];
+  
+    console.log("Saving game result with payload:", payload);
+  
+    try {
+      const { data, error } = await supabase
+        .from("game_results")
+        .insert(payload);
+  
+      console.log("Supabase response:", { data, error });
+  
+      if (error) {
+        console.error("Supabase error details:", error);
+        throw error;
+      }
+  
+      console.log("Game result saved successfully:", payload[0]);
+      return true;
+    } catch (error: any) {
+      console.error("Error saving game result:", error.message);
+      return false;
+    }
   };
   
-  console.log('Saving game result with payload:', payload);
-  
-  try {
-    const { error } = await supabase
-      .from('game_results')
-      .insert([payload]);
-
-    if (error) {
-      console.error('Supabase error details:', error);
-      throw error;
-    }
-
-    console.log('Game result saved successfully:', payload);
-    return true;
-  } catch (error: any) {
-    console.error('Error saving game result:', error.message);
-    return false;
-  }
-};
 
 // Helper function to get today's game result (if needed later)
 export const getTodaysResult = async () => {
