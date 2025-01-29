@@ -40,39 +40,36 @@ export const GameBoard: React.FC = () => {
       </div>
 
       {/* Game Buttons Container */}
-      <div className="flex gap-4 md:gap-6 items-center justify-center w-full">
+      <div className="flex gap-3 md:gap-6 items-center justify-center w-full max-w-2xl">
         {['left', 'right'].map((side) => (
           <button
             key={side}
             onClick={() => handleChoice(side as 'left' | 'right')}
             disabled={gameState !== 'playing'}
             className={`
-              w-32 h-32 md:w-48 md:h-48
-              rounded-lg text-xl md:text-3xl font-bold uppercase
-              transition-all duration-300 delay-100 ease-out
-              shadow-lg backdrop-blur-sm
+              w-28 h-28 md:w-40 md:h-40
+              rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
+              transition-all duration-300 ease-out
+              border border-white/20 backdrop-blur-lg
               flex flex-col items-center justify-center gap-2
               ${gameState === 'playing'
                 ? `
                   bg-white/10
                   hover:bg-white/15
                   hover:scale-[1.04]
-                  hover:shadow-2xl
-                  hover:[box-shadow:_0_0_20px_rgba(255,255,255,0.1)]
-                  active:scale-95
+                  hover:shadow-lg
                   ${side === 'left' 
-                    ? 'text-blue-200 hover:text-blue-100'
-                    : 'text-emerald-200 hover:text-emerald-100'
+                    ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
+                    : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
                   }
+                  active:scale-95
                 `
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
               }
             `}
           >
-            <span className="transform transition-transform group-hover:scale-105">
-              {side}
-            </span>
-            <span className="text-3xl md:text-4xl opacity-75">
+            <span>{side}</span>
+            <span className="text-2xl md:text-3xl opacity-90">
               {side === 'left' ? '←' : '→'}
             </span>
           </button>
