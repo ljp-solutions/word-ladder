@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { StatsButton } from './StatsButton';
+import { useStats } from '../hooks/useStats';
 
 export const GameBoard: React.FC = () => {
   const [winningChoice, setWinningChoice] = useState<'left' | 'right'>('left');
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
+  const { updateStats } = useStats();
 
   useEffect(() => {
     // Randomly select winning choice when component mounts
@@ -12,13 +15,15 @@ export const GameBoard: React.FC = () => {
   }, []);
 
   const handleChoice = (choice: 'left' | 'right') => {
-    if (choice === winningChoice) {
+    const won = choice === winningChoice;
+    if (won) {
       setGameState('won');
       setMessage('You Win!');
     } else {
       setGameState('lost');
       setMessage('Try Again Tomorrow!');
     }
+    updateStats(won);
   };
 
   const resetGame = () => {
@@ -29,6 +34,8 @@ export const GameBoard: React.FC = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16">
+      <StatsButton />
+      
       {/* Title and Tagline */}
       <div className="text-center mb-6 md:mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)] inline-flex items-center gap-2">
