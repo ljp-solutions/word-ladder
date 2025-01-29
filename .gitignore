@@ -19,3 +19,6 @@ build/
 *.swp
 *.swo
 .DS_Store
+
+# Log files
+*.log
