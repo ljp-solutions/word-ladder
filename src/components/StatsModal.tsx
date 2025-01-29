@@ -1,5 +1,11 @@
+import { useState, useEffect } from 'react';
 import { XMarkIcon, TrophyIcon } from '@heroicons/react/24/outline';
 import { useStats } from '../hooks/useStats';
+import { fetchGlobalStats } from '../utils/gameService';
+import { calculateWinRate } from '../utils/stats';
+import { StatBox } from './StatBox';
+import type { GlobalStats } from '../types';
+import { StatSection } from './StatSection';
 
 interface StatsModalProps {
   onClose: () => void;
@@ -7,6 +13,17 @@ interface StatsModalProps {
 
 export const StatsModal = ({ onClose }: StatsModalProps) => {
   const stats = useStats();
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadGlobalStats = async () => {
+      const data = await fetchGlobalStats();
+      setGlobalStats(data);
+      setIsLoading(false);
+    };
+    loadGlobalStats();
+  }, []);
 
   return (
     <div 
@@ -36,44 +53,74 @@ export const StatsModal = ({ onClose }: StatsModalProps) => {
           <h2 className="text-2xl font-bold text-white/90 tracking-wide">Statistics</h2>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-6 md:gap-8">
-          {/* Current Streak */}
-          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.1s_forwards]">
-            <div className="text-3xl font-bold text-white/90 drop-shadow-lg transform scale-95 animate-[scaleUp_0.4s_ease-out_0.2s_forwards]">
-              {stats.currentStreak}
-            </div>
-            <div className="text-sm text-white/60 mt-2 font-medium">Current Streak</div>
+        {/* User Stats */}
+        <section className="mb-6">
+          <h3 className="text-lg font-semibold text-white/90 mb-4 text-center">Your Stats</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <StatBox label="Games Played" value={stats.totalGames} />
+            <StatBox 
+              label="Win Rate" 
+              value={`${calculateWinRate(stats.totalWins, stats.totalGames)}%`}
+              highlight="purple"
+            />
+            <StatBox label="Current Streak" value={stats.currentStreak} highlight="gold" />
+            <StatBox label="Best Streak" value={stats.bestStreak} highlight="gold" />
           </div>
+        </section>
 
-          {/* Best Streak */}
-          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.2s_forwards]">
-            <div className="text-3xl font-bold text-yellow-400/90 drop-shadow-[0_0_15px_rgba(250,204,21,0.2)] transform scale-95 animate-[scaleUp_0.4s_ease-out_0.3s_forwards]">
-              {stats.bestStreak}
+        <hr className="border-white/10 my-6" />
+
+        {/* Global Stats */}
+        <section className="mb-6">
+          <h3 className="text-lg font-semibold text-white/90 mb-4 text-center">Global Stats</h3>
+          <div className="grid grid-cols-2 auto-rows-auto gap-4">
+            <StatBox 
+              label="Total Games" 
+              value={globalStats?.total_games ?? 0}
+              loading={isLoading}
+            />
+            <StatBox 
+              label="Global Win Rate" 
+              value={`${calculateWinRate(
+                globalStats?.total_wins ?? 0,
+                globalStats?.total_games ?? 0
+              )}%`}
+              highlight="purple"
+              loading={isLoading}
+            />
+            <div className="col-span-2 flex justify-center">
+              <StatBox 
+                label="Best Streak Ever" 
+                value={globalStats?.longest_streak ?? 0}
+                highlight="gold"
+                loading={isLoading}
+              />
             </div>
-            <div className="text-sm text-white/60 mt-2 font-medium">Best Streak</div>
           </div>
+        </section>
 
-          <div className="col-span-2 border-t border-white/10 my-4"></div>
+        <hr className="border-white/10 my-6" />
 
-          {/* Games Played */}
-          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.3s_forwards]">
-            <div className="text-3xl font-bold text-white/90 transform scale-95 animate-[scaleUp_0.4s_ease-out_0.4s_forwards]">
-              {stats.totalGames}
-            </div>
-            <div className="text-sm text-white/60 mt-2 font-medium">Games Played</div>
+        {/* Today's Stats */}
+        <section>
+          <h3 className="text-lg font-semibold text-white/90 mb-4 text-center">Today's Stats</h3>
+          <div className="flex justify-around gap-8">
+            <StatBox 
+              label="Games Today" 
+              value={globalStats?.daily_games ?? 0}
+              loading={isLoading}
+            />
+            <StatBox 
+              label="Today's Win Rate" 
+              value={`${calculateWinRate(
+                globalStats?.daily_wins ?? 0,
+                globalStats?.daily_games ?? 0
+              )}%`}
+              highlight="purple"
+              loading={isLoading}
+            />
           </div>
-
-          {/* Win Rate */}
-          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.4s_forwards]">
-            <div className="text-4xl font-extrabold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent transform scale-95 animate-[scaleUp_0.4s_ease-out_0.5s_forwards]">
-              {stats.totalGames > 0 
-                ? Math.round((stats.totalWins / stats.totalGames) * 100)
-                : 0}%
-            </div>
-            <div className="text-sm text-white/60 mt-2 font-medium">Win Rate</div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );

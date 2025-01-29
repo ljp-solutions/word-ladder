@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { GlobalStats } from '../types';
 
 interface GameResult {
   won: boolean;
@@ -45,6 +46,30 @@ export const getTodaysResult = async () => {
     return data?.[0] || null;
   } catch (error) {
     console.error('Error fetching today\'s result:', error.message);
+    return null;
+  }
+};
+
+export const fetchGlobalStats = async (): Promise<GlobalStats | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('global_stats')
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    // Ensure all number fields are actually numbers
+    return {
+      total_games: Number(data.total_games),
+      total_wins: Number(data.total_wins),
+      longest_streak: Number(data.longest_streak),
+      daily_games: Number(data.daily_games),
+      daily_wins: Number(data.daily_wins),
+      last_updated: data.last_updated,
+    };
+  } catch (error) {
+    console.error('Error fetching global stats:', error);
     return null;
   }
 };
