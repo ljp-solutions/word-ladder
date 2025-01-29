@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 
 export const GameBoard: React.FC = () => {
   const [winningChoice, setWinningChoice] = useState<'left' | 'right'>('left');
@@ -31,10 +31,11 @@ export const GameBoard: React.FC = () => {
     <div className="relative flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16">
       {/* Title and Tagline */}
       <div className="text-center mb-6 md:mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)]">
+        <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)] inline-flex items-center gap-2">
           Right Today
+          <QuestionMarkCircleIcon className="w-[1.1em] h-[1.1em] text-white/70 animate-pulse relative -bottom-[0.05em]" />
         </h1>
-        <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-3 drop-shadow">
+        <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-4 drop-shadow">
           A simple choice... or is it?
         </p>
       </div>
@@ -77,26 +78,34 @@ export const GameBoard: React.FC = () => {
       </div>
 
       {/* Fixed Height Results Container */}
-      <div className="h-32 flex flex-col items-center justify-start mt-6">
+      <div className="h-32 flex flex-col items-center justify-center mt-6">
         {/* Message Display */}
         {message && (
-          <div className="text-2xl md:text-3xl font-medium text-center mb-4 animate-fade-scale flex items-center gap-2 justify-center">
-            <span className={gameState === 'won' ? 'text-green-400' : 'text-red-400'}>
+          <div 
+            className={`
+              text-2xl md:text-3xl font-medium text-center 
+              flex items-center gap-2 justify-center
+              transition-all duration-300 ease-out
+              opacity-0 scale-95 animate-fade-in animate-delay-200
+              ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
+            `}
+          >
+            <span className="animate-[scale-105] transform-gpu">
               {message}
             </span>
             {gameState === 'won' ? (
-              <CheckCircleIcon className="w-8 h-8 text-green-400 animate-fade-scale" />
+              <CheckCircleIcon className="w-8 h-8 text-green-400" />
             ) : (
-              <XCircleIcon className="w-8 h-8 text-red-400 animate-fade-scale" />
+              <XCircleIcon className="w-8 h-8 text-red-400" />
             )}
           </div>
         )}
 
-        {/* Reset Button */}
+        {/* Reset Button (with adjusted positioning) */}
         {gameState !== 'playing' && (
           <button
             onClick={resetGame}
-            className="px-6 py-2.5 text-sm font-medium
+            className="px-6 py-2.5 text-sm font-medium mt-4
               bg-white/10 text-white/90
               rounded-lg transition-all duration-300
               hover:bg-white/15 hover:scale-105 hover:shadow-lg
