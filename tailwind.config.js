@@ -5,7 +5,20 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      animation: {
+        'fade-scale': 'fadeScale 0.3s ease-out',
+      },
+      keyframes: {
+        fadeScale: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
   },
   plugins: [],
 }
