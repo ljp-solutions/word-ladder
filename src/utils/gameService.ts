@@ -8,22 +8,27 @@ interface GameResult {
 }
 
 export const saveGameResult = async (won: boolean, streak: number): Promise<boolean> => {
+  const payload = {
+    won,
+    streak,
+    played_at: new Date().toISOString()
+  };
+  
+  console.log('Saving game result with payload:', payload);
+  
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('game_results')
-      .insert([{ 
-        won, 
-        streak,
-        played_at: new Date().toISOString() // Explicitly set for consistency
-      }]);
+      .insert([payload]);
 
     if (error) {
+      console.error('Supabase error details:', error);
       throw error;
     }
 
-    console.log('Game result saved successfully:', { won, streak });
+    console.log('Game result saved successfully:', payload);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving game result:', error.message);
     return false;
   }
