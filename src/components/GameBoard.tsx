@@ -27,9 +27,9 @@ export const GameBoard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16">
       {/* Title and Tagline */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-6 md:mb-8">
         <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-md">
           Right Today
         </h1>
@@ -40,13 +40,13 @@ export const GameBoard: React.FC = () => {
 
       {/* Message Display */}
       {message && (
-        <div className="text-2xl md:text-3xl font-medium text-center mb-8 text-white/90 animate-fade-scale">
+        <div className="text-2xl md:text-3xl font-medium text-center mb-6 text-white/90 animate-fade-scale">
           {message}
         </div>
       )}
 
       {/* Game Buttons Container */}
-      <div className="flex gap-4 md:gap-6 items-center justify-center w-full px-4">
+      <div className="flex gap-4 md:gap-6 items-center justify-center w-full">
         {['left', 'right'].map((side) => (
           <button
             key={side}
