@@ -15,8 +15,8 @@ export const StatsModal = ({ onClose }: StatsModalProps) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="
-        bg-gray-900/95 rounded-2xl p-8
-        max-w-sm w-full mx-4 
+        bg-gray-900/90 rounded-2xl p-8
+        max-w-sm w-[95%] md:w-full mx-auto 
         shadow-xl shadow-black/20
         animate-[fadeIn_0.4s_ease-out,scaleUp_0.3s_ease-out]
         border border-white/10
@@ -37,18 +37,18 @@ export const StatsModal = ({ onClose }: StatsModalProps) => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-6 md:gap-8">
           {/* Current Streak */}
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white/90 drop-shadow-lg">
+          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.1s_forwards]">
+            <div className="text-3xl font-bold text-white/90 drop-shadow-lg transform scale-95 animate-[scaleUp_0.4s_ease-out_0.2s_forwards]">
               {stats.currentStreak}
             </div>
             <div className="text-sm text-white/60 mt-2 font-medium">Current Streak</div>
           </div>
 
           {/* Best Streak */}
-          <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-400/90 drop-shadow-[0_0_15px_rgba(250,204,21,0.2)]">
+          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.2s_forwards]">
+            <div className="text-3xl font-bold text-yellow-400/90 drop-shadow-[0_0_15px_rgba(250,204,21,0.2)] transform scale-95 animate-[scaleUp_0.4s_ease-out_0.3s_forwards]">
               {stats.bestStreak}
             </div>
             <div className="text-sm text-white/60 mt-2 font-medium">Best Streak</div>
@@ -57,14 +57,16 @@ export const StatsModal = ({ onClose }: StatsModalProps) => {
           <div className="col-span-2 border-t border-white/10 my-4"></div>
 
           {/* Games Played */}
-          <div className="text-center">
-            <div className="text-3xl font-bold text-white/90">{stats.totalGames}</div>
+          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.3s_forwards]">
+            <div className="text-3xl font-bold text-white/90 transform scale-95 animate-[scaleUp_0.4s_ease-out_0.4s_forwards]">
+              {stats.totalGames}
+            </div>
             <div className="text-sm text-white/60 mt-2 font-medium">Games Played</div>
           </div>
 
           {/* Win Rate */}
-          <div className="text-center">
-            <div className="text-4xl font-extrabold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent">
+          <div className="text-center transform opacity-0 animate-[fadeIn_0.4s_ease-out_0.4s_forwards]">
+            <div className="text-4xl font-extrabold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent transform scale-95 animate-[scaleUp_0.4s_ease-out_0.5s_forwards]">
               {stats.totalGames > 0 
                 ? Math.round((stats.totalWins / stats.totalGames) * 100)
                 : 0}%

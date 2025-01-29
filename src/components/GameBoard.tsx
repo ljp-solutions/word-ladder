@@ -1,36 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
+import { saveGameResult } from '../utils/gameService';
 
 export const GameBoard: React.FC = () => {
   const [winningChoice, setWinningChoice] = useState<'left' | 'right'>('left');
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
-  const { updateStats } = useStats();
+  const { stats, updateStats } = useStats();
 
   useEffect(() => {
     // Randomly select winning choice when component mounts
     setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
   }, []);
 
-  const handleChoice = (choice: 'left' | 'right') => {
+  const handleChoice = useCallback(async (choice: 'left' | 'right') => {
     const won = choice === winningChoice;
-    if (won) {
-      setGameState('won');
-      setMessage('You Win!');
-    } else {
-      setGameState('lost');
-      setMessage('Try Again Tomorrow!');
-    }
-    updateStats(won);
-  };
+    const newStreak = updateStats(won);
 
-  const resetGame = () => {
+    setGameState(won ? 'won' : 'lost');
+    setMessage(won ? 'You Win! See you tomorrow!' : 'Try Again Tomorrow!');
+
+    try {
+      await saveGameResult(won, newStreak);
+    } catch (error) {
+      console.error('Failed to save game result:', error);
+    }
+  }, [winningChoice, updateStats]);
+
+  const resetGame = useCallback(() => {
     setGameState('playing');
     setMessage('');
     setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
-  };
+  }, []);
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-[100dvh] px-4 -mt-16">

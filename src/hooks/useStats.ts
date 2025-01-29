@@ -14,20 +14,21 @@ const defaultStats: GameStats = {
 export const useStats = () => {
   const [stats, setStats] = useState<GameStats>(loadStats);
 
-  useEffect(() => {
-    saveStats(stats);
-  }, [stats]);
+  const updateStats = (won: boolean): number => {
+    const currentStats = loadStats(); // Get latest stats from localStorage
+    const newStreak = won ? currentStats.currentStreak + 1 : 0;
+    
+    const updatedStats = {
+      currentStreak: newStreak,
+      bestStreak: won ? Math.max(currentStats.bestStreak, newStreak) : currentStats.bestStreak,
+      totalGames: currentStats.totalGames + 1,
+      totalWins: won ? currentStats.totalWins + 1 : currentStats.totalWins,
+    };
 
-  const updateStats = (won: boolean) => {
-    setStats(prev => {
-      const newStats = {
-        currentStreak: won ? prev.currentStreak + 1 : 0,
-        bestStreak: won ? Math.max(prev.bestStreak, prev.currentStreak + 1) : prev.bestStreak,
-        totalGames: prev.totalGames + 1,
-        totalWins: won ? prev.totalWins + 1 : prev.totalWins,
-      };
-      return newStats;
-    });
+    setStats(updatedStats);
+    saveStats(updatedStats); // Immediately save to localStorage
+    
+    return newStreak;
   };
 
   return {
