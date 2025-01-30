@@ -5,20 +5,20 @@ interface ShareButtonProps {
 }
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ won }) => {
-  const shareText = `⬅️ ➡️ Right Today\n\n${won ? '✅ I got it right today!' : '❌ I lost today!'}\n\nCan you figure out the pattern?\n\nright-today.co.uk`;
-  const shareUrl = 'https://right-today.vercel.app'; // Keep actual URL separate
+  const shareUrl = 'https://right-today.vercel.app';
+  const displayText = `⬅️ ➡️ Right Today\n\n${won ? '✅ I got it right today!' : '❌ I lost today!'}\n\nCan you figure out the pattern?\n\n[right-today.co.uk](${shareUrl})`;
 
   const handleShare = async () => {
     const canShare = 'share' in navigator && 
                     navigator.canShare && 
-                    navigator.canShare({ text: shareText });
+                    navigator.canShare({ text: displayText });
 
     try {
       if (canShare) {
         await navigator.share({
           title: 'Right Today',
-          text: shareText,
-          url: shareUrl // Real URL for sharing
+          text: displayText,
+          url: shareUrl
         });
       } else {
         await fallbackToClipboard();
@@ -31,14 +31,11 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ won }) => {
 
   const fallbackToClipboard = async () => {
     try {
-      // Combine text and URL for clipboard
-      const fullText = `${shareText}\n${shareUrl}`;
-      await navigator.clipboard.writeText(fullText);
+      await navigator.clipboard.writeText(displayText);
       alert('Copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy:', err);
-      // Ultimate fallback - show the text to copy manually
-      alert('Please copy this text manually:\n\n' + shareText);
+      alert('Please copy this text manually:\n\n' + displayText);
     }
   };
 

@@ -113,45 +113,30 @@ export const GameBoard: React.FC = () => {
   if (!dailyAnswer) return <div>No game available today</div>;
 
   return (
-    <motion.div 
-      className="relative flex flex-col items-center justify-center min-h-[100dvh] px-6 md:px-8"
-      animate={gameState === 'lost' ? {
-        x: [-5, 5, -5, 5, 0],
-        transition: { duration: 0.4 }
-      } : {}}
-    >
+    <motion.div className="relative flex flex-col min-h-[100dvh] px-6 md:px-8">
       {/* Stats and Help Buttons */}
       <div className="fixed top-4 right-4 z-10 flex items-center justify-end space-x-2">
         <HowToPlayButton onClick={() => setShowHowToPlay(true)} />
         <StatsButton />
       </div>
 
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={200}
-        />
-      )}
-      
-      <div className="w-full max-w-lg mx-auto">
-        {/* Title and Tagline */}
-        <div className="text-center mt-10 mb-12">
-          <div className="inline-flex flex-col items-center gap-4">
+      <div className="w-full max-w-lg mx-auto flex flex-col justify-between min-h-0 pt-12 pb-8">
+        {/* Title Section - Fixed Height */}
+        <div className="h-36 flex flex-col items-center justify-center"> {/* Increased height from h-32 to h-36 */}
+          <div className="inline-flex flex-col items-center gap-2">
             <SwitchIcon />
-            <h1 className="text-4xl md:text-4xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)]">
+            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
               Right Today
             </h1>
           </div>
-          <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-4 drop-shadow">
+          <p className="text-base md:text-lg text-gray-100 opacity-90 mt-2">
             A simple choice... or is it?
           </p>
         </div>
 
-        {/* Recent Answers Section */}
-        <div className="mt-12 mb-12 w-full">
-          <div className="text-center mb-4">
+        {/* Recent Answers - Fixed Height */}
+        <div className="h-36 flex flex-col items-center justify-center mt-4"> {/* Added mt-4 for extra spacing */}
+          <div className="text-center mb-2">
             <div className="relative inline-flex flex-col items-center">
               <h3 className="text-white/90 text-sm font-medium">Recent Answers</h3>
               <p className="text-gray-400 text-xs italic mt-1">Can you spot the pattern?</p>
@@ -204,74 +189,76 @@ export const GameBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Game Buttons Container */}
-        <div className="mt-12 flex gap-3 md:gap-6 items-center justify-center w-full mb-10">
-          {['left', 'right'].map((side) => (
-            <motion.button
-              key={side}
-              onClick={() => handleChoice(side as 'left' | 'right')}
-              disabled={gameState !== 'playing'}
-              whileTap={{ scale: 0.95 }}
-              animate={
-                selectedChoice === side && gameState !== 'playing'
-                  ? { 
-                      scale: [1, 1.1, 1.05],
-                      transition: { duration: 0.3 }
-                    } 
-                  : {
-                      scale: 1,
-                      transition: { duration: 0.3 }
-                    }
-              }
-              className={`
-                w-28 h-28 md:w-40 md:h-40
-                rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
-                transition-all duration-300 ease-out
-                border border-white/20 backdrop-blur-lg
-                flex flex-col items-center justify-center gap-2
-                ${gameState === 'playing'
-                  ? `
-                    bg-white/10
-                    hover:bg-white/15
-                    hover:scale-[1.04]
-                    hover:shadow-lg
-                    ${side === 'left' 
-                      ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
-                      : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
-                    }
-                    active:scale-95
-                  `
-                  : `
-                    cursor-not-allowed
-                    ${selectedChoice === side 
-                      ? gameState === 'won'
-                        ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                        : 'bg-red-500/20 text-red-300 border-red-500/30'
-                      : 'bg-white/5 text-white/20'
-                    }
-                  `
+        {/* Game Area - Fixed Height */}
+        <div className="h-52 flex flex-col items-center justify-center">
+          {/* Game Buttons */}
+          <div className="flex gap-3 md:gap-6 items-center justify-center w-full">
+            {['left', 'right'].map((side) => (
+              <motion.button
+                key={side}
+                onClick={() => handleChoice(side as 'left' | 'right')}
+                disabled={gameState !== 'playing'}
+                whileTap={{ scale: 0.95 }}
+                animate={
+                  selectedChoice === side && gameState !== 'playing'
+                    ? { 
+                        scale: [1, 1.1, 1.05],
+                        transition: { duration: 0.3 }
+                      } 
+                    : {
+                        scale: 1,
+                        transition: { duration: 0.3 }
+                      }
                 }
-              `}
-            >
-              <span>{side}</span>
-              <span className="text-2xl md:text-3xl opacity-90">
-                {side === 'left' ? '←' : '→'}
-              </span>
-            </motion.button>
-          ))}
+                className={`
+                  w-28 h-28 md:w-40 md:h-40
+                  rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
+                  transition-all duration-300 ease-out
+                  border border-white/20 backdrop-blur-lg
+                  flex flex-col items-center justify-center gap-2
+                  ${gameState === 'playing'
+                    ? `
+                      bg-white/10
+                      hover:bg-white/15
+                      hover:scale-[1.04]
+                      hover:shadow-lg
+                      ${side === 'left' 
+                        ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
+                        : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
+                      }
+                      active:scale-95
+                    `
+                    : `
+                      cursor-not-allowed
+                      ${selectedChoice === side 
+                        ? gameState === 'won'
+                          ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                          : 'bg-red-500/20 text-red-300 border-red-500/30'
+                        : 'bg-white/5 text-white/20'
+                      }
+                    `
+                  }
+                `}
+              >
+                <span>{side}</span>
+                <span className="text-2xl md:text-3xl opacity-90">
+                  {side === 'left' ? '←' : '→'}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </div>
 
-        {/* Results and Countdown Container */}
-        <div className="mt-6 h-32 flex flex-col items-center justify-start gap-4">
-          {/* Message Display */}
+        {/* Results Area - Fixed Height */}
+        <div className="h-40 flex flex-col items-center justify-start">
           {message && (
-            <>
+            <div className="space-y-3">
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`
                   text-2xl md:text-3xl font-medium text-center 
-                  flex items-center gap-2 justify-center mb-2
+                  flex items-center gap-2 justify-center
                   ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
                 `}
               >
@@ -282,90 +269,92 @@ export const GameBoard: React.FC = () => {
                   <XCircleIcon className="w-8 h-8 text-red-400" />
                 )}
               </motion.div>
-              
-              {/* Share Button */}
               <ShareButton won={gameState === 'won'} />
-            </>
+            </div>
           )}
-
-          {/* Countdown Timer */}
           {gameState !== 'playing' && (
-            <div className="text-gray-400 text-sm">{timeLeft}</div>
+            <div className="mt-auto text-gray-400 text-sm">{timeLeft}</div>
           )}
         </div>
-
-        {/* Modal Content */}
-        {showModal && (
-          <motion.div 
-            className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div 
-              className="bg-gray-900/95 rounded-xl shadow-xl w-full max-w-md
-                       border border-white/10 backdrop-blur-sm
-                       flex flex-col"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-            >
-              {/* Fixed Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
-                <h3 className="text-white/90 text-lg font-semibold">Previous Results</h3>
-                <button 
-                  onClick={() => setShowModal(false)}
-                  className="text-white/70 hover:text-white transition-colors"
-                >
-                  <XMarkIcon className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="max-h-[75vh] overflow-y-auto overscroll-contain
-                          scrollbar-thin scrollbar-track-gray-800/30 
-                          scrollbar-thumb-gray-600/50 hover:scrollbar-thumb-gray-500/50">
-                <ul className="divide-y divide-gray-700/50">
-                  {allResults.map((result, index) => {
-                    const date = new Date(result.game_date).toLocaleDateString("en-GB", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric"
-                    });
-
-                    return (
-                      <li key={index} className="py-3 first:pt-4 last:pb-4">
-                        <div className="px-6 flex items-center justify-between gap-4">
-                          <div className="min-w-[200px] text-left">
-                            <span className="text-sm md:text-base font-medium text-gray-300">
-                              {date}
-                            </span>
-                          </div>
-                          <div className={`
-                            w-7 h-7 shrink-0 rounded-full 
-                            flex items-center justify-center
-                            font-semibold text-sm
-                            border border-white/10
-                            ${result.correct_answer === 'left' 
-                              ? 'bg-blue-500/90 text-white shadow-sm shadow-blue-500/20' 
-                              : 'bg-green-500/90 text-white shadow-sm shadow-green-500/20'
-                            }
-                          `}>
-                            {result.correct_answer === 'left' ? 'L' : 'R'}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* How to Play Modal */}
-        {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
       </div>
+
+      {/* Modals remain unchanged */}
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
+      )}
+      {showModal && (
+        <motion.div 
+          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div 
+            className="bg-gray-900/95 rounded-xl shadow-xl w-full max-w-md
+                     border border-white/10 backdrop-blur-sm
+                     flex flex-col"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+          >
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
+              <h3 className="text-white/90 text-lg font-semibold">Previous Results</h3>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="max-h-[75vh] overflow-y-auto overscroll-contain
+                        scrollbar-thin scrollbar-track-gray-800/30 
+                        scrollbar-thumb-gray-600/50 hover:scrollbar-thumb-gray-500/50">
+              <ul className="divide-y divide-gray-700/50">
+                {allResults.map((result, index) => {
+                  const date = new Date(result.game_date).toLocaleDateString("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric"
+                  });
+
+                  return (
+                    <li key={index} className="py-3 first:pt-4 last:pb-4">
+                      <div className="px-6 flex items-center justify-between gap-4">
+                        <div className="min-w-[200px] text-left">
+                          <span className="text-sm md:text-base font-medium text-gray-300">
+                            {date}
+                          </span>
+                        </div>
+                        <div className={`
+                          w-7 h-7 shrink-0 rounded-full 
+                          flex items-center justify-center
+                          font-semibold text-sm
+                          border border-white/10
+                          ${result.correct_answer === 'left' 
+                            ? 'bg-blue-500/90 text-white shadow-sm shadow-blue-500/20' 
+                            : 'bg-green-500/90 text-white shadow-sm shadow-green-500/20'
+                          }
+                        `}>
+                          {result.correct_answer === 'left' ? 'L' : 'R'}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+      {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
     </motion.div>
   );
 };
