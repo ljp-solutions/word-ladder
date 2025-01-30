@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
-import { saveGameResult, fetchDailyAnswer } from '../utils/gameService';
+import { saveGameResult, fetchDailyAnswer, fetchLastFiveAnswers } from '../utils/gameService';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 
@@ -16,6 +16,7 @@ export const GameBoard: React.FC = () => {
   const [dailyAnswer, setDailyAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recentAnswers, setRecentAnswers] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -30,6 +31,14 @@ export const GameBoard: React.FC = () => {
     };
 
     loadDailyAnswer();
+  }, []);
+
+  useEffect(() => {
+    const loadAnswers = async () => {
+      const answers = await fetchLastFiveAnswers();
+      setRecentAnswers(answers);
+    };
+    loadAnswers();
   }, []);
 
   // Add countdown timer effect
@@ -106,18 +115,57 @@ export const GameBoard: React.FC = () => {
       <StatsButton />
       
       {/* Title and Tagline */}
-      <div className="text-center mb-6 md:mb-8">
+      <div className="text-center mb-4">
         <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)] inline-flex items-center gap-2">
           Right Today
           <QuestionMarkCircleIcon className="w-[1.1em] h-[1.1em] text-white/70 animate-pulse relative -bottom-[0.05em]" />
         </h1>
-        <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-4 drop-shadow">
+        <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-4 mb-6 drop-shadow">
           A simple choice... or is it?
         </p>
+
+        {/* Recent Answers Section */}
+        <div className="mb-8 w-full max-w-md">
+          <h3 className="text-white/90 text-sm font-medium mb-2">Recent Answers</h3>
+          <p className="text-gray-400 text-xs italic">Can you spot the pattern?</p>
+          <div className="border-t border-gray-700/30 my-3"></div>
+          <div className="flex justify-center gap-4 items-center">
+            {recentAnswers.map((answer, index) => {
+              const dayName = new Intl.DateTimeFormat("en-US", { 
+                weekday: "short" 
+              }).format(new Date(answer.game_date));
+              
+              return (
+                <div key={index} className="flex flex-col items-center gap-2">
+                  <div
+                    className={`
+                      w-6 h-6 md:w-7 md:h-7 rounded-full 
+                      transition-all duration-300
+                      flex items-center justify-center
+                      ${answer.correct_answer === 'left' 
+                        ? 'bg-blue-500/80 border-blue-400/30' 
+                        : 'bg-green-500/80 border-green-400/30'
+                      }
+                      border backdrop-blur-sm
+                    `}
+                    title={`${answer.correct_answer} (${dayName})`}
+                  >
+                    <span className="text-[0.65rem] font-bold text-white/90">
+                      {answer.correct_answer === 'left' ? 'L' : 'R'}
+                    </span>
+                  </div>
+                  <span className="text-[0.65rem] text-gray-400 font-medium">
+                    {dayName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Game Buttons Container */}
-      <div className="flex gap-3 md:gap-6 items-center justify-center w-full max-w-2xl">
+      <div className="flex gap-3 md:gap-6 items-center justify-center w-full max-w-2xl mb-8">
         {['left', 'right'].map((side) => (
           <motion.button
             key={side}
@@ -173,8 +221,8 @@ export const GameBoard: React.FC = () => {
         ))}
       </div>
 
-      {/* Results and Countdown Container */}
-      <div className="h-40 flex flex-col items-center justify-start mt-6">
+      {/* Results and Countdown Container with fixed height */}
+      <div className="h-32 flex flex-col items-center justify-start">
         {/* Message Display */}
         {message && (
           <motion.div 

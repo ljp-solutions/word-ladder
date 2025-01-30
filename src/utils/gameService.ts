@@ -7,6 +7,11 @@ interface GameResult {
   played_at?: string; // Optional as it's set by default in Supabase
 }
 
+interface RecentAnswer {
+  correct_answer: string;
+  game_date: string;
+}
+
 export const saveGameResult = async (won: boolean, streak: number): Promise<boolean> => {
     const payload = [{
       won,
@@ -99,5 +104,29 @@ export const fetchDailyAnswer = async (): Promise<string | null> => {
   } catch (error: any) {
     console.error("Unexpected error fetching daily answer:", error.message);
     return null;
+  }
+};
+
+export const fetchLastFiveAnswers = async (): Promise<RecentAnswer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("global_game")
+      .select("correct_answer, game_date")
+      .lt("game_date", new Date().toISOString().split("T")[0])
+      .order("game_date", { ascending: true }) // Changed to ascending
+      .limit(5);
+
+    if (error) {
+      console.error("Error fetching recent answers:", error.message);
+      return [];
+    }
+
+    return data?.map(row => ({
+      correct_answer: row.correct_answer,
+      game_date: row.game_date
+    })) || [];
+  } catch (error) {
+    console.error("Unexpected error fetching recent answers:", error);
+    return [];
   }
 };
