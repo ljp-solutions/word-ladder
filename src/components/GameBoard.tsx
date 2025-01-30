@@ -2,22 +2,34 @@ import { useState, useEffect, useCallback } from 'react';
 import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
-import { saveGameResult } from '../utils/gameService';
+import { saveGameResult, fetchDailyAnswer } from '../utils/gameService';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 
 export const GameBoard: React.FC = () => {
-  const [winningChoice, setWinningChoice] = useState<'left' | 'right'>('left');
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
   const { stats, updateStats } = useStats();
   const [selectedChoice, setSelectedChoice] = useState<'left' | 'right' | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [dailyAnswer, setDailyAnswer] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Randomly select winning choice when component mounts
-    setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
+    const loadDailyAnswer = async () => {
+      setIsLoading(true);
+      const answer = await fetchDailyAnswer();
+      if (answer) {
+        setDailyAnswer(answer);
+      } else {
+        setError("Unable to fetch today's answer");
+      }
+      setIsLoading(false);
+    };
+
+    loadDailyAnswer();
   }, []);
 
   // Add countdown timer effect
@@ -44,8 +56,10 @@ export const GameBoard: React.FC = () => {
   }, []);
 
   const handleChoice = useCallback(async (choice: 'left' | 'right') => {
+    if (isLoading || !dailyAnswer || gameState !== 'playing') return;
+
     setSelectedChoice(choice);
-    const won = choice === winningChoice;
+    const won = choice === dailyAnswer;
     const newStreak = updateStats(won);
 
     if (won) {
@@ -61,14 +75,17 @@ export const GameBoard: React.FC = () => {
     } catch (error) {
       console.error('Failed to save game result:', error);
     }
-  }, [winningChoice, updateStats]);
+  }, [dailyAnswer, gameState, isLoading, updateStats]);
 
   const resetGame = useCallback(() => {
     setGameState('playing');
     setMessage('');
     setSelectedChoice(null); // Reset selected choice
-    setWinningChoice(Math.random() < 0.5 ? 'left' : 'right');
   }, []);
+
+  if (isLoading) return <div>Loading today's game...</div>;
+  if (error) return <div>{error}</div>;
+  if (!dailyAnswer) return <div>No game available today</div>;
 
   return (
     <motion.div 

@@ -81,3 +81,23 @@ export const fetchGlobalStats = async (): Promise<GlobalStats | null> => {
     return null;
   }
 };
+
+export const fetchDailyAnswer = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("global_game")
+      .select("correct_answer")
+      .eq("game_date", new Date().toISOString().split("T")[0])
+      .single();
+
+    if (error) {
+      console.error("Error fetching daily answer:", error.message);
+      return null;
+    }
+
+    return data?.correct_answer || null;
+  } catch (error: any) {
+    console.error("Unexpected error fetching daily answer:", error.message);
+    return null;
+  }
+};
