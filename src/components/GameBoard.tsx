@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
@@ -24,6 +24,7 @@ export const GameBoard: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [allResults, setAllResults] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -87,13 +88,18 @@ export const GameBoard: React.FC = () => {
     const won = choice === dailyAnswer;
     const newStreak = updateStats(won);
 
-    if (won) {
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000); // Hide confetti after 5s
-    }
-
+    // Add delay before showing result
     setGameState(won ? 'won' : 'lost');
     setMessage(won ? 'You Win!' : 'Try Again Tomorrow!');
+    
+    // Show result after delay
+    setTimeout(() => {
+      setShowResult(true);
+      if (won) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+      }
+    }, 3000);
 
     try {
       await saveGameResult(won, newStreak);
@@ -122,7 +128,7 @@ export const GameBoard: React.FC = () => {
       </div>
 
       <div className="w-full max-w-lg mx-auto flex flex-col flex-grow 
-                space-y-4 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
+                space-y-2 md:space-y-3 pt-8 pb-0 md:py-6 md:justify-center">
         
         {/* Title Section */}
         <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4">
@@ -137,64 +143,67 @@ export const GameBoard: React.FC = () => {
           </p>
         </div>
 
-        {/* Recent Answers */}
+        {/* Recent Answers - Fixed width and icon positioning */}
         <div className="h-36 md:h-auto flex flex-col items-center justify-center 
-                    mt-4 md:mt-0 md:py-6">
-          <div className="text-center mb-2">
-            <div className="relative inline-flex flex-col items-center">
-              <h3 className="text-white/90 text-sm font-medium">Recent Answers</h3>
-              <p className="text-gray-400 text-xs italic mt-1">Can you spot the pattern?</p>
-              <button 
-                onClick={() => setShowModal(true)}
-                className="absolute -right-10 top-1/2 -translate-y-1/2
-                         w-7 h-7 rounded-full bg-gray-700 hover:bg-gray-600 
-                         transition-all duration-300 flex items-center justify-center
-                         border border-white/10"
-                aria-label="View More Results"
-              >
-                <MagnifyingGlassIcon className="w-4 h-4 text-white/70" />
-              </button>
+                    mt-4 md:mt-0 md:py-6 w-full">
+          <div className="w-full max-w-[250px] md:max-w-[420px] bg-gray-800/50 rounded-lg shadow-inner 
+                      p-4 md:p-6 backdrop-blur-sm border border-white/5">
+            <div className="text-center mb-2">
+              <div className="relative inline-flex flex-col items-center">
+                <h3 className="text-white/90 text-sm font-medium">Recent Answers</h3>
+                <p className="text-gray-400 text-xs italic mt-1">Can you spot the pattern?</p>
+                <button 
+                  onClick={() => setShowModal(true)}
+                  className="absolute -right-10 top-1/2 -translate-y-1/2
+                           w-7 h-7 rounded-full bg-gray-700 hover:bg-gray-600 
+                           transition-all duration-300 flex items-center justify-center
+                           border border-white/10"
+                  aria-label="View More Results"
+                >
+                  <MagnifyingGlassIcon className="w-4 h-4 text-white/70" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="border-t border-gray-700/30 my-3"></div>
-          
-          {/* Rest of Recent Answers content */}
-          <div className="flex justify-center gap-4 items-center">
-            {[...recentAnswers].reverse().map((answer, index) => {
-              const dayName = new Intl.DateTimeFormat("en-US", { 
-                weekday: "short" 
-              }).format(new Date(answer.game_date));
-              
-              return (
-                <div key={index} className="flex flex-col items-center gap-2">
-                  <div
-                    className={`
-                      w-6 h-6 md:w-7 md:h-7 rounded-full 
-                      transition-all duration-300
-                      flex items-center justify-center
-                      ${answer.correct_answer === 'left' 
-                        ? 'bg-blue-500/80 border-blue-400/30' 
-                        : 'bg-green-500/80 border-green-400/30'
-                      }
-                      border backdrop-blur-sm
-                    `}
-                    title={`${answer.correct_answer} (${dayName})`}
-                  >
-                    <span className="text-[0.65rem] font-bold text-white/90">
-                      {answer.correct_answer === 'left' ? 'L' : 'R'}
+            <div className="border-t border-gray-700/30 my-3"></div>
+            
+            <div className="flex justify-center gap-4 items-center">
+              {/* Rest of Recent Answers content remains unchanged */}
+              {[...recentAnswers].reverse().map((answer, index) => {
+                const dayName = new Intl.DateTimeFormat("en-US", { 
+                  weekday: "short" 
+                }).format(new Date(answer.game_date));
+                
+                return (
+                  <div key={index} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`
+                        w-6 h-6 md:w-7 md:h-7 rounded-full 
+                        transition-all duration-300
+                        flex items-center justify-center
+                        ${answer.correct_answer === 'left' 
+                          ? 'bg-blue-500/80 border-blue-400/30' 
+                          : 'bg-green-500/80 border-green-400/30'
+                        }
+                        border backdrop-blur-sm
+                      `}
+                      title={`${answer.correct_answer} (${dayName})`}
+                    >
+                      <span className="text-[0.65rem] font-bold text-white/90">
+                        {answer.correct_answer === 'left' ? 'L' : 'R'}
+                      </span>
+                    </div>
+                    <span className="text-[0.65rem] text-gray-400 font-medium">
+                      {dayName}
                     </span>
                   </div>
-                  <span className="text-[0.65rem] text-gray-400 font-medium">
-                    {dayName}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Game Area */}
-        <div className="h-52 md:h-auto flex flex-col items-center justify-center md:py-8">
+        {/* Game Area - No bottom padding */}
+        <div className="h-52 md:h-auto flex flex-col items-center justify-center">
           {/* Game Buttons */}
           <div className="flex flex-wrap md:flex-nowrap gap-3 md:gap-8 items-center justify-center w-full">
             {['left', 'right'].map((side) => (
@@ -253,10 +262,44 @@ export const GameBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Results Area */}
-        <div className="h-40 md:h-auto flex flex-col items-center md:justify-center md:py-6">
-          {message && (
-            <div className="space-y-3">
+        {/* Results Area - Added spacing before ShareButton */}
+        <div className="h-40 md:h-auto flex flex-col items-center gap-0">
+          {message && !showResult && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center"
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: 360,
+                }}
+                transition={{ 
+                  duration: 2,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                }}
+                className="relative"
+              >
+                <motion.div
+                  animate={{
+                    opacity: [0.5, 1, 0.5],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute inset-0 bg-white/10 rounded-full blur-xl"
+                />
+                <ArrowPathIcon className="w-12 h-12 text-white/80" />
+              </motion.div>
+            </motion.div>
+          )}
+          {message && showResult && (
+            <div className="flex flex-col items-center gap-6">
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -273,11 +316,13 @@ export const GameBoard: React.FC = () => {
                   <XCircleIcon className="w-8 h-8 text-red-400" />
                 )}
               </motion.div>
-              <ShareButton won={gameState === 'won'} />
+              <div className="flex justify-center w-full mt-1">
+                <ShareButton won={gameState === 'won'} />
+              </div>
             </div>
           )}
-          {gameState !== 'playing' && (
-            <div className="mt-auto text-gray-400 text-sm">{timeLeft}</div>
+          {gameState !== 'playing' && showResult && (
+            <div className="text-gray-400 text-sm mt-2">{timeLeft}</div>
           )}
         </div>
       </div>
