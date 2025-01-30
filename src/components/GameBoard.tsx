@@ -276,19 +276,7 @@ export const GameBoard: React.FC = () => {
             <div className="text-gray-400 text-sm">{timeLeft}</div>
           )}
 
-          {/* Reset Button */}
-          {gameState !== 'playing' && (
-            <button
-              onClick={resetGame}
-              className="px-6 py-2.5 text-sm font-medium mt-4
-                bg-white/10 text-white/90
-                rounded-lg transition-all duration-300
-                hover:bg-white/15 hover:scale-105 hover:shadow-lg
-                active:scale-95 backdrop-blur-sm"
-            >
-              Play Again
-            </button>
-          )}
+          
         </div>
 
         {/* Modal Content */}
