@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
@@ -7,6 +7,7 @@ import { saveGameResult, fetchDailyAnswer, fetchLastFiveAnswers, fetchAllPreviou
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import HowToPlayModal from './HowToPlayModal';
+import HowToPlayButton from './HowToPlayButton';
 
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
@@ -120,15 +121,7 @@ export const GameBoard: React.FC = () => {
     >
       {/* Stats and Help Buttons */}
       <div className="fixed top-4 right-4 z-10 flex items-center justify-end space-x-2">
-        <button
-          onClick={() => setShowHowToPlay(true)}
-          className="w-10 h-10 rounded-full bg-gray-800/50 hover:bg-gray-700/50
-                   transition-all duration-300 flex items-center justify-center
-                   border border-white/10 backdrop-blur-sm"
-          aria-label="How to Play"
-        >
-          <QuestionMarkCircleIcon className="w-5 h-5 text-white/80" />
-        </button>
+        <HowToPlayButton onClick={() => setShowHowToPlay(true)} />
         <StatsButton />
       </div>
 
