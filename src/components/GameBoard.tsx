@@ -151,7 +151,6 @@ export const GameBoard: React.FC = () => {
             <div className="text-center mb-2">
               <div className="relative inline-flex flex-col items-center">
                 <h3 className="text-white/90 text-sm font-medium">Recent Answers</h3>
-                <p className="text-gray-400 text-xs italic mt-1">Can you spot the pattern?</p>
                 <button 
                   onClick={() => setShowModal(true)}
                   className="absolute -right-10 top-1/2 -translate-y-1/2
