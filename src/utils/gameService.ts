@@ -130,3 +130,23 @@ export const fetchLastFiveAnswers = async (): Promise<RecentAnswer[]> => {
     return [];
   }
 };
+
+export const fetchAllPreviousAnswers = async (): Promise<RecentAnswer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("global_game")
+      .select("correct_answer, game_date")
+      .order("game_date", { ascending: false })
+      .limit(100); // Limit to last 100 games for performance
+
+    if (error) {
+      console.error("Error fetching all answers:", error.message);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Unexpected error fetching all answers:", error);
+    return [];
+  }
+};
