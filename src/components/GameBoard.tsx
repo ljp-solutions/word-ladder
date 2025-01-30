@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircleIcon, XCircleIcon, QuestionMarkCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
 import { saveGameResult, fetchDailyAnswer, fetchLastFiveAnswers, fetchAllPreviousAnswers } from '../utils/gameService';
@@ -128,10 +129,12 @@ export const GameBoard: React.FC = () => {
       <div className="w-full max-w-lg mx-auto">
         {/* Title and Tagline */}
         <div className="text-center mt-10 mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)] inline-flex items-center gap-2">
-            Right Today
-            <QuestionMarkCircleIcon className="w-[1.1em] h-[1.1em] text-white/70 animate-pulse relative -bottom-[0.05em]" />
-          </h1>
+          <div className="inline-flex flex-col items-center gap-4">
+            <SwitchIcon />
+            <h1 className="text-4xl md:text-4xl font-bold text-white drop-shadow-lg [text-shadow:_0_1px_2px_rgb(0_0_0_/_0.1)]">
+              Right Today
+            </h1>
+          </div>
           <p className="text-lg md:text-xl text-gray-100 opacity-90 tracking-wide font-light mt-4 drop-shadow">
             A simple choice... or is it?
           </p>
