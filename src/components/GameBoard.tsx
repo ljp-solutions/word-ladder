@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import HowToPlayModal from './HowToPlayModal';
 import HowToPlayButton from './HowToPlayButton';
+import { ShareButton } from './ShareButton';
 
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
@@ -261,33 +262,36 @@ export const GameBoard: React.FC = () => {
         </div>
 
         {/* Results and Countdown Container */}
-        <div className="mt-6 h-32 flex flex-col items-center justify-start">
+        <div className="mt-6 h-32 flex flex-col items-center justify-start gap-4">
           {/* Message Display */}
           {message && (
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`
-                text-2xl md:text-3xl font-medium text-center 
-                flex items-center gap-2 justify-center mb-2
-                ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
-              `}
-            >
-              <span>{message}</span>
-              {gameState === 'won' ? (
-                <CheckCircleIcon className="w-8 h-8 text-green-400" />
-              ) : (
-                <XCircleIcon className="w-8 h-8 text-red-400" />
-              )}
-            </motion.div>
+            <>
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`
+                  text-2xl md:text-3xl font-medium text-center 
+                  flex items-center gap-2 justify-center mb-2
+                  ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
+                `}
+              >
+                <span>{message}</span>
+                {gameState === 'won' ? (
+                  <CheckCircleIcon className="w-8 h-8 text-green-400" />
+                ) : (
+                  <XCircleIcon className="w-8 h-8 text-red-400" />
+                )}
+              </motion.div>
+              
+              {/* Share Button */}
+              <ShareButton won={gameState === 'won'} />
+            </>
           )}
 
           {/* Countdown Timer */}
           {gameState !== 'playing' && (
             <div className="text-gray-400 text-sm">{timeLeft}</div>
           )}
-
-          
         </div>
 
         {/* Modal Content */}
