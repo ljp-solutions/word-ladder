@@ -136,6 +136,7 @@ export const fetchAllPreviousAnswers = async (): Promise<RecentAnswer[]> => {
     const { data, error } = await supabase
       .from("global_game")
       .select("correct_answer, game_date")
+      .lt("game_date", new Date().toISOString().split("T")[0])
       .order("game_date", { ascending: false })
       .limit(100); // Limit to last 100 games for performance
 

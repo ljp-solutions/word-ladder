@@ -9,19 +9,12 @@ export const StatsButton = () => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="
-          fixed top-6 right-6 md:top-8 md:right-8
-          p-2.5 rounded-full
-          bg-white/10 hover:bg-white/15
-          transition-all duration-300
-          backdrop-blur-sm
-          hover:scale-110 active:scale-95
-          hover:shadow-lg hover:shadow-white/5
-          z-10
-        "
-        aria-label="View Stats"
+        className="w-10 h-10 rounded-full bg-gray-800/50 hover:bg-gray-700/50
+                transition-all duration-300 flex items-center justify-center
+                border border-white/10 backdrop-blur-sm"
+        aria-label="View Statistics"
       >
-        <ChartBarIcon className="w-5 h-5 text-white/70" />
+        <ChartBarIcon className="w-5 h-5 text-white/80" />
       </button>
 
       {isOpen && <StatsModal onClose={() => setIsOpen(false)} />}

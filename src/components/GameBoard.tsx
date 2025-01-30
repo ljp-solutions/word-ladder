@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
 import { saveGameResult, fetchDailyAnswer, fetchLastFiveAnswers, fetchAllPreviousAnswers } from '../utils/gameService';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
+import HowToPlayModal from './HowToPlayModal';
 
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
@@ -20,6 +21,7 @@ export const GameBoard: React.FC = () => {
   const [recentAnswers, setRecentAnswers] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
   const [showModal, setShowModal] = useState(false);
   const [allResults, setAllResults] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -104,7 +106,7 @@ export const GameBoard: React.FC = () => {
     setSelectedChoice(null); // Reset selected choice
   }, []);
 
-  if (isLoading) return <div>Loading today's game...</div>;
+  if (isLoading) return <div></div>;
   if (error) return <div>{error}</div>;
   if (!dailyAnswer) return <div>No game available today</div>;
 
@@ -116,6 +118,20 @@ export const GameBoard: React.FC = () => {
         transition: { duration: 0.4 }
       } : {}}
     >
+      {/* Stats and Help Buttons */}
+      <div className="fixed top-4 right-4 z-10 flex items-center justify-end space-x-2">
+        <button
+          onClick={() => setShowHowToPlay(true)}
+          className="w-10 h-10 rounded-full bg-gray-800/50 hover:bg-gray-700/50
+                   transition-all duration-300 flex items-center justify-center
+                   border border-white/10 backdrop-blur-sm"
+          aria-label="How to Play"
+        >
+          <QuestionMarkCircleIcon className="w-5 h-5 text-white/80" />
+        </button>
+        <StatsButton />
+      </div>
+
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
@@ -124,7 +140,6 @@ export const GameBoard: React.FC = () => {
           numberOfPieces={200}
         />
       )}
-      <StatsButton />
       
       <div className="w-full max-w-lg mx-auto">
         {/* Title and Tagline */}
@@ -350,6 +365,9 @@ export const GameBoard: React.FC = () => {
             </motion.div>
           </motion.div>
         )}
+
+        {/* How to Play Modal */}
+        {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
       </div>
     </motion.div>
   );
