@@ -113,16 +113,19 @@ export const GameBoard: React.FC = () => {
   if (!dailyAnswer) return <div>No game available today</div>;
 
   return (
-    <motion.div className="relative flex flex-col min-h-[100dvh] px-6 md:px-8">
-      {/* Stats and Help Buttons */}
+    <motion.div className="relative flex flex-col min-h-screen h-screen w-full max-w-full 
+                px-6 md:px-8 overflow-hidden">
+      {/* Stats and Help Buttons - Fixed positioning without relative */}
       <div className="fixed top-4 right-4 z-10 flex items-center justify-end space-x-2">
         <HowToPlayButton onClick={() => setShowHowToPlay(true)} />
         <StatsButton />
       </div>
 
-      <div className="w-full max-w-lg mx-auto flex flex-col justify-between min-h-0 pt-12 pb-8">
-        {/* Title Section - Fixed Height */}
-        <div className="h-36 flex flex-col items-center justify-center"> {/* Increased height from h-32 to h-36 */}
+      <div className="w-full max-w-lg mx-auto flex flex-col flex-grow 
+                space-y-4 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
+        
+        {/* Title Section */}
+        <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4">
           <div className="inline-flex flex-col items-center gap-2">
             <SwitchIcon />
             <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
@@ -134,8 +137,9 @@ export const GameBoard: React.FC = () => {
           </p>
         </div>
 
-        {/* Recent Answers - Fixed Height */}
-        <div className="h-36 flex flex-col items-center justify-center mt-4"> {/* Added mt-4 for extra spacing */}
+        {/* Recent Answers */}
+        <div className="h-36 md:h-auto flex flex-col items-center justify-center 
+                    mt-4 md:mt-0 md:py-6">
           <div className="text-center mb-2">
             <div className="relative inline-flex flex-col items-center">
               <h3 className="text-white/90 text-sm font-medium">Recent Answers</h3>
@@ -189,10 +193,10 @@ export const GameBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Game Area - Fixed Height */}
-        <div className="h-52 flex flex-col items-center justify-center">
+        {/* Game Area */}
+        <div className="h-52 md:h-auto flex flex-col items-center justify-center md:py-8">
           {/* Game Buttons */}
-          <div className="flex gap-3 md:gap-6 items-center justify-center w-full">
+          <div className="flex flex-wrap md:flex-nowrap gap-3 md:gap-8 items-center justify-center w-full">
             {['left', 'right'].map((side) => (
               <motion.button
                 key={side}
@@ -211,7 +215,7 @@ export const GameBoard: React.FC = () => {
                       }
                 }
                 className={`
-                  w-28 h-28 md:w-40 md:h-40
+                  w-28 h-28 md:w-36 md:h-36
                   rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
                   transition-all duration-300 ease-out
                   border border-white/20 backdrop-blur-lg
@@ -249,8 +253,8 @@ export const GameBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Results Area - Fixed Height */}
-        <div className="h-40 flex flex-col items-center justify-start">
+        {/* Results Area */}
+        <div className="h-40 md:h-auto flex flex-col items-center md:justify-center md:py-6">
           {message && (
             <div className="space-y-3">
               <motion.div 

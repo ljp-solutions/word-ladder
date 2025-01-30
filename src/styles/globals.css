@@ -1,0 +1,26 @@
+html, body {
+    overflow: hidden !important;
+}
+
+html, body {
+    min-height: 100vh;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden !important; /* FORCE REMOVE SCROLLBAR */
+  }
+
+* {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+}
+
+  
+  #__next, #root {
+    min-height: 100vh;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #root > div {
+  }
+  

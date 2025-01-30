@@ -11,6 +11,7 @@ html, body, #root {
   min-height: 100dvh;
   background: linear-gradient(to bottom right, rgb(17 24 39), rgb(23 27 35), rgb(15 20 25));
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 #root {
