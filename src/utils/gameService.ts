@@ -113,7 +113,7 @@ export const fetchLastFiveAnswers = async (): Promise<RecentAnswer[]> => {
       .from("global_game")
       .select("correct_answer, game_date")
       .lt("game_date", new Date().toISOString().split("T")[0])
-      .order("game_date", { ascending: true }) // Changed to ascending
+      .order("game_date", { ascending: false }) // Changed to ascending
       .limit(5);
 
     if (error) {
@@ -124,7 +124,7 @@ export const fetchLastFiveAnswers = async (): Promise<RecentAnswer[]> => {
     return data?.map(row => ({
       correct_answer: row.correct_answer,
       game_date: row.game_date
-    })) || [];
+    })) || [].reverse();
   } catch (error) {
     console.error("Unexpected error fetching recent answers:", error);
     return [];

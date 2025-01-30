@@ -159,7 +159,7 @@ export const GameBoard: React.FC = () => {
           
           {/* Rest of Recent Answers content */}
           <div className="flex justify-center gap-4 items-center">
-            {recentAnswers.map((answer, index) => {
+            {[...recentAnswers].reverse().map((answer, index) => {
               const dayName = new Intl.DateTimeFormat("en-US", { 
                 weekday: "short" 
               }).format(new Date(answer.game_date));
