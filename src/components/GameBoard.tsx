@@ -269,17 +269,17 @@ export const GameBoard: React.FC = () => {
                     w-28 h-28 md:w-36 md:h-36
                     rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
                     transition-all duration-300 ease-out
-                    border border-white/20 backdrop-blur-lg
+                    border border-white/5 backdrop-blur-sm
                     flex flex-col items-center justify-center gap-2
                     ${(gameState === 'playing' && (!hasPlayedToday || isTestMode))
                       ? `
-                        bg-white/10
-                        hover:bg-white/15
-                        hover:scale-[1.04]
+                        bg-gray-800/30
+                        hover:bg-gray-800/40
+                        hover:scale-[1.02]
                         hover:shadow-lg
                         ${side === 'left' 
-                          ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
-                          : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
+                          ? 'text-blue-300 hover:text-blue-200 hover:border-blue-500/20' 
+                          : 'text-green-300 hover:text-green-200 hover:border-green-500/20'
                         }
                         active:scale-95
                       `
@@ -287,9 +287,9 @@ export const GameBoard: React.FC = () => {
                         cursor-not-allowed
                         ${selectedChoice === side 
                           ? gameState === 'won'
-                            ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                            : 'bg-red-500/20 text-red-300 border-red-500/30'
-                          : 'bg-white/5 text-white/20'
+                            ? 'bg-green-500/10 text-green-300 border-green-500/20'
+                            : 'bg-red-500/10 text-red-300 border-red-500/20'
+                          : 'bg-gray-800/20 text-white/20'
                         }
                       `
                     }
