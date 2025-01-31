@@ -41,6 +41,8 @@ export const GameBoard: React.FC = () => {
   const storageAvailable = isLocalStorageAvailable();
   const [showPlayedMessage, setShowPlayedMessage] = useState(false);
   const [todayResult, setTodayResult] = useState<{ choice: string; won: boolean } | null>(null);
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [totalWeeks, setTotalWeeks] = useState(0);
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -160,6 +162,41 @@ export const GameBoard: React.FC = () => {
     setMessage('');
     setSelectedChoice(null); // Reset selected choice
   }, []);
+
+  const groupResultsByWeek = (results: typeof allResults) => {
+    if (!results.length) return [];
+
+    // Sort results by date in ascending order (oldest first)
+    const sortedResults = [...results].sort((a, b) => 
+      new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
+    );
+
+    // Group into weeks of 7 days
+    const weeks: typeof allResults[] = [];
+    let currentWeek: typeof allResults = [];
+
+    sortedResults.forEach((result, index) => {
+      currentWeek.push(result);
+      if (currentWeek.length === 7 || index === sortedResults.length - 1) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    });
+
+    return weeks;
+  };
+
+  // Update total weeks count when allResults changes
+  useEffect(() => {
+    const weeks = groupResultsByWeek(allResults);
+    setTotalWeeks(weeks.length);
+  }, [allResults]);
+
+  // Add debug effect
+  useEffect(() => {
+    console.log('All Results:', allResults);
+    console.log('Current Weeks:', groupResultsByWeek(allResults).slice(currentWeekOffset, currentWeekOffset + 4));
+  }, [allResults, currentWeekOffset]);
 
   if (isLoading) return <div></div>;
   if (error) return <div>{error}</div>;
@@ -430,61 +467,93 @@ export const GameBoard: React.FC = () => {
           exit={{ opacity: 0 }}
         >
           <motion.div 
-            className="bg-gray-900/95 rounded-xl shadow-xl w-full max-w-md
+            className="w-full bg-gray-900/95 rounded-xl shadow-xl
                      border border-white/10 backdrop-blur-sm
-                     flex flex-col"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+                     flex flex-col max-h-[85vh] md:max-h-[80vh] md:max-w-lg
+                     mx-auto my-auto overflow-hidden"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
           >
-            {/* Fixed Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
-              <h3 className="text-white/90 text-lg font-semibold">Previous Results</h3>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
+              <h3 className="text-white/90 text-base font-semibold">Previous Results</h3>
               <button 
                 onClick={() => setShowModal(false)}
-                className="text-white/70 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-gray-800/50 
+                         flex items-center justify-center
+                         text-gray-400 hover:text-white transition-colors"
               >
-                <XMarkIcon className="w-6 h-6" />
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="max-h-[75vh] overflow-y-auto overscroll-contain
-                        scrollbar-thin scrollbar-track-gray-800/30 
-                        scrollbar-thumb-gray-600/50 hover:scrollbar-thumb-gray-500/50">
-              <ul className="divide-y divide-gray-700/50">
-                {allResults.map((result, index) => {
-                  const date = new Date(result.game_date).toLocaleDateString("en-GB", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric"
-                  });
+            <div className="flex-1 overflow-y-auto">
+              {/* Navigation */}
+              <div className="sticky top-0 z-10 flex items-center justify-between p-4 
+                            bg-gray-900/95 border-b border-gray-800">
+                <button
+                  onClick={() => setCurrentWeekOffset(prev => Math.min(prev + 4, totalWeeks - 4))}
+                  disabled={currentWeekOffset >= totalWeeks - 4}
+                  className="p-2 text-sm text-gray-400 hover:text-white
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-colors duration-200"
+                >
+                  ← Older
+                </button>
+                <span className="text-gray-300 text-sm font-medium">
+                  {currentWeekOffset === 0 ? 'Latest Results' : `${totalWeeks - currentWeekOffset} weeks ago`}
+                </span>
+                <button
+                  onClick={() => setCurrentWeekOffset(prev => Math.max(0, prev - 4))}
+                  disabled={currentWeekOffset === 0}
+                  className="p-2 text-sm text-gray-400 hover:text-white
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-colors duration-200"
+                >
+                  Newer →
+                </button>
+              </div>
 
-                  return (
-                    <li key={index} className="py-3 first:pt-4 last:pb-4">
-                      <div className="px-6 flex items-center justify-between gap-4">
-                        <div className="min-w-[200px] text-left">
-                          <span className="text-sm md:text-base font-medium text-gray-300">
-                            {date}
-                          </span>
-                        </div>
-                        <div className={`
-                          w-7 h-7 shrink-0 rounded-full 
-                          flex items-center justify-center
-                          font-semibold text-sm
-                          border border-white/10
-                          ${result.correct_answer === 'left' 
-                            ? 'bg-blue-500/90 text-white shadow-sm shadow-blue-500/20' 
-                            : 'bg-green-500/90 text-white shadow-sm shadow-green-500/20'
-                          }
-                        `}>
-                          {result.correct_answer === 'left' ? 'L' : 'R'}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* Results Grid - Grouped by weeks */}
+              <div className="grid grid-cols-7 gap-2 p-4">
+                {groupResultsByWeek(allResults).slice(currentWeekOffset, currentWeekOffset + 4).flat().map((result, index) => (
+                  <div 
+                    key={result.game_date}
+                    className="aspect-square bg-gray-800/30 rounded-lg
+                             border border-white/5 backdrop-blur-sm
+                             flex flex-col items-center justify-center gap-1
+                             hover:bg-gray-800/40 transition-all duration-300"
+                  >
+                    <span className="text-[0.65rem] text-gray-400 font-medium">
+                      {new Intl.DateTimeFormat("en-US", { 
+                        weekday: "short" 
+                      }).format(new Date(result.game_date))}
+                    </span>
+                    <div className={`
+                      w-6 h-6 rounded-full 
+                      flex items-center justify-center
+                      ${result.correct_answer === 'left'
+                        ? 'bg-blue-500/80 border-blue-400/30' 
+                        : 'bg-green-500/80 border-green-400/30'
+                      }
+                      border backdrop-blur-sm
+                    `}>
+                      <span className="text-[0.65rem] font-bold text-white/90">
+                        {result.correct_answer === 'left' ? 'L' : 'R'}
+                      </span>
+                    </div>
+                    <span className="text-[0.65rem] text-gray-500">
+                      {new Date(result.game_date).getDate()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {allResults.length === 0 && (
+                <div className="p-8 text-center">
+                  <p className="text-gray-400 text-sm">No results available yet</p>
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>
