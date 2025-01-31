@@ -10,6 +10,17 @@ import HowToPlayModal from './HowToPlayModal';
 import HowToPlayButton from './HowToPlayButton';
 import { ShareButton } from './ShareButton';
 
+const isLocalStorageAvailable = () => {
+  try {
+    const test = 'test';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch(e) {
+    return false;
+  }
+};
+
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
@@ -25,6 +36,9 @@ export const GameBoard: React.FC = () => {
   const [allResults, setAllResults] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const isTestMode = import.meta.env.VITE_TEST_MODE === 'true';
+  const [hasPlayedToday, setHasPlayedToday] = useState(false);
+  const storageAvailable = isLocalStorageAvailable();
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -81,12 +95,39 @@ export const GameBoard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Add effect to check last played date
+  useEffect(() => {
+    if (!storageAvailable || isTestMode) return;
+    
+    try {
+      const lastPlayedDate = localStorage.getItem("lastPlayedDate");
+      const today = new Date().toDateString();
+      
+      if (lastPlayedDate === today) {
+        setHasPlayedToday(true);
+      }
+    } catch (error) {
+      console.warn('Failed to check last played date:', error);
+    }
+  }, [isTestMode, storageAvailable]);
+
   const handleChoice = useCallback(async (choice: 'left' | 'right') => {
     if (isLoading || !dailyAnswer || gameState !== 'playing') return;
+    if (!isTestMode && hasPlayedToday) return;
 
     setSelectedChoice(choice);
     const won = choice === dailyAnswer;
     const newStreak = updateStats(won);
+
+    // Save play date to localStorage with availability check
+    if (!isTestMode && storageAvailable) {
+      try {
+        localStorage.setItem("lastPlayedDate", new Date().toDateString());
+        setHasPlayedToday(true);
+      } catch (error) {
+        console.warn('Failed to save play date:', error);
+      }
+    }
 
     // Add delay before showing result
     setGameState(won ? 'won' : 'lost');
@@ -106,7 +147,7 @@ export const GameBoard: React.FC = () => {
     } catch (error) {
       console.error('Failed to save game result:', error);
     }
-  }, [dailyAnswer, gameState, isLoading, updateStats]);
+  }, [dailyAnswer, gameState, isLoading, updateStats, hasPlayedToday, isTestMode, storageAvailable]);
 
   const resetGame = useCallback(() => {
     setGameState('playing');
@@ -209,7 +250,7 @@ export const GameBoard: React.FC = () => {
               <motion.button
                 key={side}
                 onClick={() => handleChoice(side as 'left' | 'right')}
-                disabled={gameState !== 'playing'}
+                disabled={gameState !== 'playing' || (!isTestMode && hasPlayedToday)}
                 whileTap={{ scale: 0.95 }}
                 animate={
                   selectedChoice === side && gameState !== 'playing'
@@ -228,7 +269,7 @@ export const GameBoard: React.FC = () => {
                   transition-all duration-300 ease-out
                   border border-white/20 backdrop-blur-lg
                   flex flex-col items-center justify-center gap-2
-                  ${gameState === 'playing'
+                  ${(gameState === 'playing' && (!hasPlayedToday || isTestMode))
                     ? `
                       bg-white/10
                       hover:bg-white/15
