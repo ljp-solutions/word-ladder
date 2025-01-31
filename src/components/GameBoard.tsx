@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, ArrowPathIcon, ClockIcon } from '@heroicons/react/24/outline';
 import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
@@ -39,6 +39,8 @@ export const GameBoard: React.FC = () => {
   const isTestMode = import.meta.env.VITE_TEST_MODE === 'true';
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const storageAvailable = isLocalStorageAvailable();
+  const [showPlayedMessage, setShowPlayedMessage] = useState(false);
+  const [todayResult, setTodayResult] = useState<{ choice: string; won: boolean } | null>(null);
 
   useEffect(() => {
     const loadDailyAnswer = async () => {
@@ -102,9 +104,11 @@ export const GameBoard: React.FC = () => {
     try {
       const lastPlayedDate = localStorage.getItem("lastPlayedDate");
       const today = new Date().toDateString();
+      const savedResult = localStorage.getItem("todayResult");
       
-      if (lastPlayedDate === today) {
+      if (lastPlayedDate === today && savedResult) {
         setHasPlayedToday(true);
+        setTodayResult(JSON.parse(savedResult));
       }
     } catch (error) {
       console.warn('Failed to check last played date:', error);
@@ -123,7 +127,9 @@ export const GameBoard: React.FC = () => {
     if (!isTestMode && storageAvailable) {
       try {
         localStorage.setItem("lastPlayedDate", new Date().toDateString());
+        localStorage.setItem("todayResult", JSON.stringify({ choice, won }));
         setHasPlayedToday(true);
+        setTodayResult({ choice, won });
       } catch (error) {
         console.warn('Failed to save play date:', error);
       }
@@ -169,7 +175,7 @@ export const GameBoard: React.FC = () => {
       </div>
 
       <div className="w-full max-w-lg mx-auto flex flex-col flex-grow 
-                space-y-2 md:space-y-3 pt-8 pb-0 md:py-6 md:justify-center">
+                space-y-4 md:space-y-6 pt-8 pb-0 md:py-6 md:justify-center">
         
         {/* Title Section */}
         <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4">
@@ -242,129 +248,174 @@ export const GameBoard: React.FC = () => {
           </div>
         </div>
 
-        {/* Game Area - No bottom padding */}
-        <div className="h-52 md:h-auto flex flex-col items-center justify-center">
-          {/* Game Buttons */}
-          <div className="flex flex-wrap md:flex-nowrap gap-3 md:gap-8 items-center justify-center w-full">
-            {['left', 'right'].map((side) => (
-              <motion.button
-                key={side}
-                onClick={() => handleChoice(side as 'left' | 'right')}
-                disabled={gameState !== 'playing' || (!isTestMode && hasPlayedToday)}
-                whileTap={{ scale: 0.95 }}
-                animate={
-                  selectedChoice === side && gameState !== 'playing'
-                    ? { 
-                        scale: [1, 1.1, 1.05],
-                        transition: { duration: 0.3 }
-                      } 
-                    : {
-                        scale: 1,
-                        transition: { duration: 0.3 }
-                      }
-                }
-                className={`
-                  w-28 h-28 md:w-36 md:h-36
-                  rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
-                  transition-all duration-300 ease-out
-                  border border-white/20 backdrop-blur-lg
-                  flex flex-col items-center justify-center gap-2
-                  ${(gameState === 'playing' && (!hasPlayedToday || isTestMode))
-                    ? `
-                      bg-white/10
-                      hover:bg-white/15
-                      hover:scale-[1.04]
-                      hover:shadow-lg
-                      ${side === 'left' 
-                        ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
-                        : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
-                      }
-                      active:scale-95
-                    `
-                    : `
-                      cursor-not-allowed
-                      ${selectedChoice === side 
-                        ? gameState === 'won'
-                          ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                          : 'bg-red-500/20 text-red-300 border-red-500/30'
-                        : 'bg-white/5 text-white/20'
-                      }
-                    `
+        {/* Game Area or Already Played Message */}
+        <div className="h-auto flex flex-col items-center justify-center">
+          {(!hasPlayedToday || isTestMode) ? (
+            // Game Buttons
+            <div className="flex flex-wrap md:flex-nowrap gap-3 md:gap-8 items-center justify-center w-full">
+              {['left', 'right'].map((side) => (
+                <motion.button
+                  key={side}
+                  onClick={() => handleChoice(side as 'left' | 'right')}
+                  disabled={gameState !== 'playing' || (!isTestMode && hasPlayedToday)}
+                  whileTap={{ scale: 0.95 }}
+                  animate={
+                    selectedChoice === side && gameState !== 'playing'
+                      ? { 
+                          scale: [1, 1.1, 1.05],
+                          transition: { duration: 0.3 }
+                        } 
+                      : {
+                          scale: 1,
+                          transition: { duration: 0.3 }
+                        }
                   }
-                `}
-              >
-                <span>{side}</span>
-                <span className="text-2xl md:text-3xl opacity-90">
-                  {side === 'left' ? '←' : '→'}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Results Area - Added spacing before ShareButton */}
-        <div className="h-40 md:h-auto flex flex-col items-center gap-0">
-          {message && !showResult && (
+                  className={`
+                    w-28 h-28 md:w-36 md:h-36
+                    rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
+                    transition-all duration-300 ease-out
+                    border border-white/20 backdrop-blur-lg
+                    flex flex-col items-center justify-center gap-2
+                    ${(gameState === 'playing' && (!hasPlayedToday || isTestMode))
+                      ? `
+                        bg-white/10
+                        hover:bg-white/15
+                        hover:scale-[1.04]
+                        hover:shadow-lg
+                        ${side === 'left' 
+                          ? 'text-blue-300 hover:text-blue-200 hover:shadow-blue-500/20'
+                          : 'text-green-300 hover:text-green-200 hover:shadow-green-500/20'
+                        }
+                        active:scale-95
+                      `
+                      : `
+                        cursor-not-allowed
+                        ${selectedChoice === side 
+                          ? gameState === 'won'
+                            ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                            : 'bg-red-500/20 text-red-300 border-red-500/30'
+                          : 'bg-white/5 text-white/20'
+                        }
+                      `
+                    }
+                  `}
+                >
+                  <span>{side}</span>
+                  <span className="text-2xl md:text-3xl opacity-90">
+                    {side === 'left' ? '←' : '→'}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          ) : (
+            // Already played message with today's result
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center justify-center"
+              className="w-full max-w-sm mx-auto bg-gray-800/50 rounded-xl p-6
+                        backdrop-blur-md border border-gray-700/30
+                        flex flex-col items-center gap-4"
             >
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: 360,
-                }}
-                transition={{ 
-                  duration: 2,
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                }}
-                className="relative"
-              >
-                <motion.div
-                  animate={{
-                    opacity: [0.5, 1, 0.5],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute inset-0 bg-white/10 rounded-full blur-xl"
-                />
-                <ArrowPathIcon className="w-12 h-12 text-white/80" />
-              </motion.div>
+              <div className="flex items-center gap-3">
+                
+                <div>
+                  <h3 className="text-gray-100 font-medium text-lg">
+                    You've already played today
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-0.5">
+                    Come back tomorrow for a new challenge!
+                  </p>
+                </div>
+              </div>
+
+              {todayResult && (
+                <div className="w-full flex flex-col items-center gap-3 mt-2">
+                  <div className={`
+                    w-full px-4 py-3 rounded-lg text-center
+                    ${todayResult.won 
+                      ? 'bg-green-500/20 text-green-300 border-green-500/30' 
+                      : 'bg-red-500/20 text-red-300 border-red-500/30'
+                    } border
+                  `}>
+                    <span className="font-medium">
+                      You chose {todayResult.choice} - {todayResult.won ? 'Correct!' : 'Wrong!'}
+                    </span>
+                  </div>
+                  
+                  <div className="text-gray-400 text-sm">
+                    {timeLeft}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
-          {message && showResult && (
-            <div className="flex flex-col items-center gap-6">
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`
-                  text-2xl md:text-3xl font-medium text-center 
-                  flex items-center gap-2 justify-center
-                  ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
-                `}
-              >
-                <span>{message}</span>
-                {gameState === 'won' ? (
-                  <CheckCircleIcon className="w-8 h-8 text-green-400" />
-                ) : (
-                  <XCircleIcon className="w-8 h-8 text-red-400" />
-                )}
-              </motion.div>
-              <div className="flex justify-center w-full mt-1">
-                <ShareButton won={gameState === 'won'} />
-              </div>
-            </div>
-          )}
-          {gameState !== 'playing' && showResult && (
-            <div className="text-gray-400 text-sm mt-2">{timeLeft}</div>
-          )}
         </div>
+
+        {/* Results Area - Only show during gameplay */}
+        {(!hasPlayedToday || isTestMode) && (
+          <div className="h-40 md:h-auto flex flex-col items-center gap-0">
+            {message && !showResult && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center"
+              >
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: 360,
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                  }}
+                  className="relative"
+                >
+                  <motion.div
+                    animate={{
+                      opacity: [0.5, 1, 0.5],
+                      scale: [1, 1.2, 1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="absolute inset-0 bg-white/10 rounded-full blur-xl"
+                  />
+                  <ArrowPathIcon className="w-12 h-12 text-white/80" />
+                </motion.div>
+              </motion.div>
+            )}
+            {message && showResult && (
+              <div className="flex flex-col items-center gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`
+                    text-2xl md:text-3xl font-medium text-center 
+                    flex items-center gap-2 justify-center
+                    ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
+                  `}
+                >
+                  <span>{message}</span>
+                  {gameState === 'won' ? (
+                    <CheckCircleIcon className="w-8 h-8 text-green-400" />
+                  ) : (
+                    <XCircleIcon className="w-8 h-8 text-red-400" />
+                  )}
+                </motion.div>
+                <div className="flex justify-center w-full mt-1">
+                  <ShareButton won={gameState === 'won'} />
+                </div>
+              </div>
+            )}
+            {gameState !== 'playing' && showResult && (
+              <div className="text-gray-400 text-sm mt-2">{timeLeft}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modals remain unchanged */}
