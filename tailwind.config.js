@@ -28,6 +28,9 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
+      fontFamily: {
+        sans: ['Work Sans', 'sans-serif'], // Set Work Sans as the default sans font
+      },
     },
   },
   plugins: [],

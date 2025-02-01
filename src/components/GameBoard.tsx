@@ -215,11 +215,12 @@ export const GameBoard: React.FC = () => {
                 space-y-12 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
         
         {/* Title Section */}
-        <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4">
+        <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4 font-sans">
           <div className="inline-flex flex-col items-center gap-2">
             <SwitchIcon />
-            <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
-              Right Today
+            <h1 className="text-3xl md:text-4xl font-thin text-white drop-shadow-lg">
+              <span className="font-light tracking-[0.08em]">RIGHT</span>
+              <span className="font-thin text-gray-300 tracking-[0.02em]"> today</span>
             </h1>
           </div>
           <p className="text-base md:text-lg text-gray-100 opacity-90 mt-2">

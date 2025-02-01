@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@100;200;300;400;500;600;700&display=swap');
+
 html, body {
     overflow: hidden !important;
 }
@@ -7,6 +9,7 @@ html, body {
     height: 100%;
     overflow-x: hidden;
     overflow-y: hidden !important; /* FORCE REMOVE SCROLLBAR */
+    font-family: 'Work Sans', sans-serif; /* Apply Work Sans font globally */
   }
 
 * {
