@@ -119,7 +119,6 @@ export const GameBoard: React.FC = () => {
 
   const handleChoice = useCallback(async (choice: 'left' | 'right') => {
     if (isLoading || !dailyAnswer || gameState !== 'playing') return;
-    if (!isTestMode && hasPlayedToday) return;
 
     setSelectedChoice(choice);
     const won = choice === dailyAnswer;
@@ -130,7 +129,7 @@ export const GameBoard: React.FC = () => {
       try {
         localStorage.setItem("lastPlayedDate", new Date().toDateString());
         localStorage.setItem("todayResult", JSON.stringify({ choice, won }));
-        setHasPlayedToday(true);
+        
         setTodayResult({ choice, won });
       } catch (error) {
         console.warn('Failed to save play date:', error);
@@ -155,7 +154,7 @@ export const GameBoard: React.FC = () => {
     } catch (error) {
       console.error('Failed to save game result:', error);
     }
-  }, [dailyAnswer, gameState, isLoading, updateStats, hasPlayedToday, isTestMode, storageAvailable]);
+  }, [dailyAnswer, gameState, isLoading, updateStats, isTestMode, storageAvailable]);
 
   const resetGame = useCallback(() => {
     setGameState('playing');
