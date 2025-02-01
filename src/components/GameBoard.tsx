@@ -380,6 +380,9 @@ export const GameBoard: React.FC = () => {
                   </div>
                 </div>
               )}
+              <div className="w-full flex justify-center mt-4">
+                <ShareButton won={todayResult?.won} />
+              </div>
             </motion.div>
           )}
         </div>

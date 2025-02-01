@@ -6,7 +6,7 @@ interface ShareButtonProps {
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ won }) => {
   const shareUrl = 'https://right-today.vercel.app';
-  const displayText = `⬅️ ➡️ Right Today\n\n${won ? '✅ I got it right today!' : '❌ I lost today!'}\n\nCan you get it right today?\n\n[right-today.co.uk](${shareUrl})`;
+  const displayText = `⬅️ ➡️ Right Today\n\n${won ? '✅ I got it right today!' : '❌ I lost today!'}\n\nCan you get it right today?\n\n${shareUrl}`;
 
   const handleShare = async () => {
     const canShare = 'share' in navigator && 
