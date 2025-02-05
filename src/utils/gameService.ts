@@ -4,6 +4,7 @@ import type { GlobalStats } from '../types';
 interface GameResult {
   won: boolean;
   streak: number;
+  turns: number;
   played_at?: string; // Optional as it's set by default in Supabase
 }
 
@@ -18,10 +19,11 @@ interface DailyGame {
   joker_steps: any; // JSONB field
 }
 
-export const saveGameResult = async (won: boolean, streak: number): Promise<boolean> => {
+export const saveGameResult = async (won: boolean, streak: number, turns: number): Promise<boolean> => {
     const payload = [{
       won,
       streak,
+      turns,
       played_at: new Date()
     }];
   

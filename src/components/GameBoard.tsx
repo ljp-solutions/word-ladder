@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, ArrowPathIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
-import SwitchIcon from "../components/appIcon";
+
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
 import { saveGameResult, fetchDailyGame } from '../utils/gameService';
 import { isValidMove } from '../utils/moveValidation';
 import { motion } from 'framer-motion';
-import Confetti from 'react-confetti';
 import HowToPlayModal from './HowToPlayModal';
-import HowToPlayButton from './HowToPlayButton';
 import { ShareButton } from './ShareButton';
 import InvalidMoveModal from './InvalidMoveModal';
 import WinningMessage from "./WinningMessage";
@@ -175,41 +172,63 @@ export const GameBoard: React.FC = () => {
     }
   }, [pendingFocus]);
 
-  const handleChoice = useCallback(async (word: string) => {
-    if (isLoading || !targetWord || gameState !== 'playing') return;
+  const handleMove = async (newWord: string, rowIndex: number) => {
+    if (!startWord || !targetWord) return;
 
-    setSelectedWord(word);
-    const won = word === targetWord;
-    const newStreak = updateStats(won);
+    const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
 
-    if (!isTestMode && storageAvailable) {
-      try {
-        localStorage.setItem("lastPlayedDate", new Date().toDateString());
-        localStorage.setItem("todayResult", JSON.stringify({ word, won }));
-        
-        setTodayResult({ word, won });
-      } catch (error) {
-        console.warn('Failed to save play date:', error);
-      }
-    }
+    if (await isValidMove(lastWord, newWord)) {
+      const currentTurn = rowIndex + 1;
+      setTurnsTaken(currentTurn);
 
-    setGameState(won ? 'won' : 'lost');
-    setMessage(won ? 'You Win!' : 'Try Again Tomorrow!');
-    
-    setTimeout(() => {
-      setShowResult(true);
+      const normalizedNew = newWord.toUpperCase();
+      const normalizedTarget = targetWord.toUpperCase();
+      const won = normalizedNew === normalizedTarget;
+
       if (won) {
+        // Only save results and update UI when player wins
+        setGameState('won');
+        setShowWinningMessage(true);
         setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-      }
-    }, 3000);
+        
+        // Update stats and save game result
+        const newStreak = updateStats(true);
+        try {
+          // Save to database
+          await saveGameResult(true, newStreak, currentTurn);
+          
+          // Save to localStorage
+          if (!isTestMode && storageAvailable) {
+            localStorage.setItem("lastPlayedDate", new Date().toDateString());
+            localStorage.setItem("todayResult", JSON.stringify({ 
+              word: newWord, 
+              won: true,
+              turns: currentTurn 
+            }));
+            setTodayResult({ word: newWord, won: true });
+          }
+          
+          setHasPlayedToday(true);
+        } catch (error) {
+          console.error('Failed to save game result:', error);
+        }
 
-    try {
-      await saveGameResult(won, newStreak);
-    } catch (error) {
-      console.error('Failed to save game result:', error);
+        return;
+      }
+      
+      // Continue game if not won
+      const nextRowIndex = rowIndex + 1;
+      setUserInputs([...userInputs, ['', '', '', '']]);
+      
+      setTimeout(() => {
+        const firstInput = inputRefs.current[nextRowIndex * 4];
+        if (firstInput) firstInput.focus();
+      }, 50);
+
+    } else {
+      setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
     }
-  }, [targetWord, gameState, isLoading, updateStats, isTestMode, storageAvailable]);
+  };
 
   const resetGame = useCallback(() => {
     setGameState('playing');
@@ -261,52 +280,6 @@ export const GameBoard: React.FC = () => {
     }
   };
 
-  const handleMove = async (newWord: string, rowIndex: number) => {
-    if (!startWord || !targetWord) return;
-
-    const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
-
-    console.log('Debug win condition:');
-    console.log('newWord:', newWord, 'type:', typeof newWord);
-    console.log('targetWord:', targetWord, 'type:', typeof targetWord);
-    console.log('Comparison result:', newWord.toUpperCase() === targetWord.toUpperCase());
-
-    if (await isValidMove(lastWord, newWord)) {
-      setTurnsTaken(rowIndex + 1);
-
-      // Check win condition with detailed logging
-      const normalizedNew = newWord.toUpperCase();
-      const normalizedTarget = targetWord.toUpperCase();
-      console.log('Normalized comparison:');
-      console.log('normalizedNew:', normalizedNew);
-      console.log('normalizedTarget:', normalizedTarget);
-      console.log('Match?:', normalizedNew === normalizedTarget);
-
-      if (normalizedNew === normalizedTarget) {
-        console.log('Win condition met! Showing winning message...');
-        setGameState('won');
-        setShowWinningMessage(true);
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 5000);
-        handleChoice(newWord);
-        return;
-      }
-      
-      // Continue with normal move
-      const nextRowIndex = rowIndex + 1;
-      setUserInputs([...userInputs, ['', '', '', '']]);
-      
-      setTimeout(() => {
-        const firstInput = inputRefs.current[nextRowIndex * 4];
-        if (firstInput) firstInput.focus();
-      }, 50);
-
-      handleChoice(newWord);
-    } else {
-      setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
-    }
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent, rowIndex: number) => {
     if (e.key === 'Enter') {
       handleMove(userInputs[rowIndex].join(''), rowIndex);
@@ -325,34 +298,28 @@ export const GameBoard: React.FC = () => {
   if (!startWord) return <div>No game available today</div>;
 
   return (
-    <motion.div className="relative flex flex-col min-h-screen h-screen w-full max-w-full 
-                px-6 md:px-8 overflow-hidden font-sans">
-      
-      <div className="w-full max-w-lg mx-auto flex flex-col flex-grow space-y-8 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
-        {/* Title Section */}
-        <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4 font-sans">
-          <div className="inline-flex flex-col items-center gap-2">
-            <SwitchIcon />
-            <h1 className="text-3xl md:text-4xl font-thin text-white drop-shadow-lg">
-              <span className="font-light tracking-[0.08em]">RIGHT</span>
-              <span className="font-thin text-gray-300 tracking-[0.02em]"> today</span>
-            </h1>
-          </div>
-        </div>
-        
+    <motion.div className="flex flex-col w-full">
+      <div className="flex flex-col flex-grow space-y-8 md:space-y-10 pt-8 pb-0 md:py-6">
         {(!hasPlayedToday || isTestMode) ? (
           <>
-            <div className="flex justify-center gap-4 mb-1"> {/* Added mb-1 to reduce gap */}
-              {startWord.split('').map((letter, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center"
-                >
-                  {letter}
+            {/* Starting Word Panel */}
+            <div className="flex flex-col items-center">
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-4">
+                <div className="text-gray-400 font-medium text-sm mb-3 text-center">START</div>
+                <div className="flex justify-center gap-4">
+                  {startWord?.split('').map((letter, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center"
+                    >
+                      {letter}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-            {/* Adjusted height to fit exactly 3 rows (3 * 64px for height + gaps) */}
+
+            {/* Input Area */}
             <div 
               ref={scrollContainerRef}
               className="h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
@@ -371,19 +338,21 @@ export const GameBoard: React.FC = () => {
                 ))}
               </div>
             </div>
-            {/* Add separator and target word section */}
-            <div className="border-t border-gray-700 w-1/2 mx-auto my-8"></div>
-            <div className="flex flex-col items-center gap-4 mt-8">
-              <h3 className="text-gray-400">Target Word:</h3>
-              <div className="flex gap-4">
-                {targetWord?.split('').map((letter, index) => (
-                  <div
-                    key={index}
-                    className="bg-gray-700 font-light text-gray-200 p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center shadow-lg"
-                  >
-                    {letter}
-                  </div>
-                ))}
+
+            {/* Target Word Panel */}
+            <div className="flex flex-col items-center">
+              <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-4 shadow-lg">
+                <div className="text-gray-400 font-medium text-sm mb-3 text-center">TARGET</div>
+                <div className="flex gap-4">
+                  {targetWord?.split('').map((letter, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-700 font-light text-gray-200 p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center shadow-lg"
+                    >
+                      {letter}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </>
