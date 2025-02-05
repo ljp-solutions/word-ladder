@@ -27,7 +27,7 @@ const InvalidMoveModal: React.FC<InvalidMoveModalProps> = ({ onClose, message })
         </div>
 
         {/* Warning Message */}
-        <div className="flex items-center gap-3 text-yellow-400 text-sm px-2">
+        <div className="flex items-center gap-3 text-yellow-400 text-sm px-2 text-left">
           <ExclamationTriangleIcon className="w-6 h-6" />
           <p>{message}</p>
         </div>

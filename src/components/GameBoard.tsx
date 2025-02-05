@@ -226,7 +226,7 @@ export const GameBoard: React.FC = () => {
       }, 50);
 
     } else {
-      setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
+      setInvalidMoveMessage("You can only change one letter or swap two letters and your word must be valid.");
     }
   };
 
