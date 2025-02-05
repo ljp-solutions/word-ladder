@@ -12,7 +12,7 @@ interface StatsModalProps {
 }
 
 export const StatsModal = ({ onClose }: StatsModalProps) => {
-  const stats = useStats();
+  const { stats } = useStats();  // Get stats from useStats hook
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

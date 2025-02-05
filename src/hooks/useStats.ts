@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { loadStats, saveStats } from '../utils/localStorage';
 import type { GameStats } from '../types';
 
-const STORAGE_KEY = 'rightToday_gameStats';
+const STORAGE_KEY = 'swapple_gameStats';
 
 const defaultStats: GameStats = {
   currentStreak: 0,
@@ -11,28 +10,50 @@ const defaultStats: GameStats = {
   totalWins: 0,
 };
 
+const loadStats = (): GameStats => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return defaultStats;
+
+    const parsed = JSON.parse(saved);
+    return {
+      currentStreak: Number(parsed.currentStreak) || 0,
+      bestStreak: Number(parsed.bestStreak) || 0,
+      totalGames: Number(parsed.totalGames) || 0,
+      totalWins: Number(parsed.totalWins) || 0,
+    };
+  } catch (error) {
+    console.warn('Failed to load stats from localStorage:', error);
+    return defaultStats;
+  }
+};
+
+const saveStats = (stats: GameStats): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  } catch (error) {
+    console.warn('Failed to save stats to localStorage:', error);
+  }
+};
+
 export const useStats = () => {
   const [stats, setStats] = useState<GameStats>(loadStats);
 
   const updateStats = (won: boolean): number => {
-    const currentStats = loadStats(); // Get latest stats from localStorage
-    const newStreak = won ? currentStats.currentStreak + 1 : 0;
-    
-    const updatedStats = {
-      currentStreak: newStreak,
-      bestStreak: won ? Math.max(currentStats.bestStreak, newStreak) : currentStats.bestStreak,
-      totalGames: currentStats.totalGames + 1,
-      totalWins: won ? currentStats.totalWins + 1 : currentStats.totalWins,
+    const newStats = {
+      currentStreak: won ? stats.currentStreak + 1 : 0,
+      bestStreak: won ? Math.max(stats.bestStreak, stats.currentStreak + 1) : stats.bestStreak,
+      totalGames: stats.totalGames + 1,
+      totalWins: won ? stats.totalWins + 1 : stats.totalWins,
     };
 
-    setStats(updatedStats);
-    saveStats(updatedStats); // Immediately save to localStorage
-    
-    return newStreak;
+    setStats(newStats);
+    saveStats(newStats);
+    return newStats.currentStreak;
   };
 
   return {
-    ...stats,
+    stats,
     updateStats,
   };
 };

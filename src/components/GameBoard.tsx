@@ -9,6 +9,7 @@ import HowToPlayModal from './HowToPlayModal';
 import { ShareButton } from './ShareButton';
 import InvalidMoveModal from './InvalidMoveModal';
 import WinningMessage from "./WinningMessage";
+import type { TodayResult } from '../types';
 
 const isLocalStorageAvailable = () => {
   try {
@@ -50,6 +51,8 @@ const InputRow: React.FC<{
 };
 
 export const GameBoard: React.FC = () => {
+  // Add new state to track if game was just completed
+  const [justCompleted, setJustCompleted] = useState(false);
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
   const { stats, updateStats } = useStats();
@@ -69,7 +72,7 @@ export const GameBoard: React.FC = () => {
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const storageAvailable = isLocalStorageAvailable();
   const [showPlayedMessage, setShowPlayedMessage] = useState(false);
-  const [todayResult, setTodayResult] = useState<{ word: string; won: boolean } | null>(null);
+  const [todayResult, setTodayResult] = useState<TodayResult | null>(null);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [totalWeeks, setTotalWeeks] = useState(0);
   const [userInputs, setUserInputs] = useState<string[][]>([['', '', '', '']]);
@@ -186,37 +189,61 @@ export const GameBoard: React.FC = () => {
       const won = normalizedNew === normalizedTarget;
 
       if (won) {
-        // Only save results and update UI when player wins
         setGameState('won');
         setShowWinningMessage(true);
         setShowConfetti(true);
+        setJustCompleted(true);
         
-        // Update stats and save game result
         const newStreak = updateStats(true);
         try {
           // Save to database
           await saveGameResult(true, newStreak, currentTurn);
           
-          // Save to localStorage
-          if (!isTestMode && storageAvailable) {
-            localStorage.setItem("lastPlayedDate", new Date().toDateString());
-            localStorage.setItem("todayResult", JSON.stringify({ 
-              word: newWord, 
-              won: true,
-              turns: currentTurn 
-            }));
-            setTodayResult({ word: newWord, won: true });
-          }
+          // Save to localStorage (removed incorrect condition)
+          const resultData: TodayResult = {
+            word: newWord,
+            won: true,
+            turns: currentTurn,
+            streak: newStreak
+          };
           
+          localStorage.setItem("lastPlayedDate", new Date().toDateString());
+          localStorage.setItem("todayResult", JSON.stringify(resultData));
+          setTodayResult(resultData);
           setHasPlayedToday(true);
         } catch (error) {
           console.error('Failed to save game result:', error);
         }
+        return;
+      }
 
+      // If this was the last allowed guess and they didn't win
+      if (currentTurn >= 6) {  // Assuming 6 is max turns
+        setGameState('lost');
+        setJustCompleted(true); // Set flag when game is lost too
+        
+        try {
+          const newStreak = updateStats(false); // Reset streak for loss
+          await saveGameResult(false, newStreak, currentTurn);
+          
+          const resultData: TodayResult = {
+            word: newWord,
+            won: false,
+            turns: currentTurn,
+            streak: 0  // Reset streak for loss
+          };
+          
+          localStorage.setItem("lastPlayedDate", new Date().toDateString());
+          localStorage.setItem("todayResult", JSON.stringify(resultData));
+          setTodayResult(resultData);
+          setHasPlayedToday(true);
+        } catch (error) {
+          console.error('Failed to save game result:', error);
+        }
         return;
       }
       
-      // Continue game if not won
+      // Continue game if not won or lost
       const nextRowIndex = rowIndex + 1;
       setUserInputs([...userInputs, ['', '', '', '']]);
       
@@ -224,43 +251,12 @@ export const GameBoard: React.FC = () => {
         const firstInput = inputRefs.current[nextRowIndex * 4];
         if (firstInput) firstInput.focus();
       }, 50);
-
     } else {
-      setInvalidMoveMessage("You can only change one letter or swap two letters and your word must be valid.");
+      setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
     }
   };
 
-  const resetGame = useCallback(() => {
-    setGameState('playing');
-    setMessage('');
-    setSelectedWord(null);
-  }, []);
 
-  const groupResultsByWeek = (results: typeof allResults) => {
-    if (!results.length) return [];
-
-    const sortedResults = [...results].sort((a, b) => 
-      new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
-    );
-
-    const weeks: typeof allResults[] = [];
-    let currentWeek: typeof allResults = [];
-
-    sortedResults.forEach((result, index) => {
-      currentWeek.push(result);
-      if (currentWeek.length === 7 || index === sortedResults.length - 1) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-    });
-
-    return weeks;
-  };
-
-  useEffect(() => {
-    const weeks = groupResultsByWeek(allResults);
-    setTotalWeeks(weeks.length);
-  }, [allResults]);
 
   const handleInputChange = (rowIndex: number, index: number, value: string) => {
     if (value.length > 1) return;
@@ -293,6 +289,7 @@ export const GameBoard: React.FC = () => {
     setUserInputs(newInputs);
   };
 
+  // Update the render logic to consider justCompleted
   if (isLoading) return <div></div>;
   if (error) return <div>{error}</div>;
   if (!startWord) return <div>No game available today</div>;
@@ -300,7 +297,7 @@ export const GameBoard: React.FC = () => {
   return (
     <motion.div className="flex flex-col w-full">
       <div className="flex flex-col flex-grow space-y-8 md:space-y-10 pt-8 pb-0 md:py-6">
-        {(!hasPlayedToday || isTestMode) ? (
+        {(!hasPlayedToday || isTestMode || justCompleted) ? (
           <>
             {/* Starting Word Panel */}
             <div className="flex flex-col items-center">
@@ -384,9 +381,16 @@ export const GameBoard: React.FC = () => {
                   } border
                 `}>
                   <span className="font-medium font-sans">
-                    You chose {todayResult.word} - {todayResult.won ? 'Correct!' : 'Wrong!'}
+                    {todayResult.won 
+                      ? `Success! You reached ${todayResult.word} in ${todayResult.turns} ${todayResult.turns === 1 ? 'turn' : 'turns'}` 
+                      : `You chose ${todayResult.word} - Wrong!`}
                   </span>
                 </div>
+                {todayResult.won && (
+                  <div className="text-gray-300 text-sm font-sans">
+                    Current streak: {todayResult.streak}
+                  </div>
+                )}
                 <div className="text-gray-400 text-sm font-sans">
                   {timeLeft}
                 </div>
