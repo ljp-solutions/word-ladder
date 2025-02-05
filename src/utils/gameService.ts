@@ -12,6 +12,12 @@ interface RecentAnswer {
   game_date: string;
 }
 
+interface DailyGame {
+  start_word: string;
+  target_word: string;
+  joker_steps: any; // JSONB field
+}
+
 export const saveGameResult = async (won: boolean, streak: number): Promise<boolean> => {
     const payload = [{
       won,
@@ -87,67 +93,22 @@ export const fetchGlobalStats = async (): Promise<GlobalStats | null> => {
   }
 };
 
-export const fetchDailyAnswer = async (): Promise<string | null> => {
+export const fetchDailyGame = async (): Promise<DailyGame | null> => {
   try {
     const { data, error } = await supabase
       .from("global_game")
-      .select("correct_answer")
+      .select("start_word, target_word, joker_steps")
       .eq("game_date", new Date().toISOString().split("T")[0])
       .single();
 
     if (error) {
-      console.error("Error fetching daily answer:", error.message);
+      console.error("Error fetching daily game:", error.message);
       return null;
     }
 
-    return data?.correct_answer || null;
+    return data || null;
   } catch (error: any) {
-    console.error("Unexpected error fetching daily answer:", error.message);
+    console.error("Unexpected error fetching daily game:", error.message);
     return null;
-  }
-};
-
-export const fetchLastFiveAnswers = async (): Promise<RecentAnswer[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("global_game")
-      .select("correct_answer, game_date")
-      .lt("game_date", new Date().toISOString().split("T")[0])
-      .order("game_date", { ascending: false }) // Changed to ascending
-      .limit(5);
-
-    if (error) {
-      console.error("Error fetching recent answers:", error.message);
-      return [];
-    }
-
-    return data?.map(row => ({
-      correct_answer: row.correct_answer,
-      game_date: row.game_date
-    })) || [].reverse();
-  } catch (error) {
-    console.error("Unexpected error fetching recent answers:", error);
-    return [];
-  }
-};
-
-export const fetchAllPreviousAnswers = async (): Promise<RecentAnswer[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("global_game")
-      .select("correct_answer, game_date")
-      .lt("game_date", new Date().toISOString().split("T")[0])
-      .order("game_date", { ascending: false })
-      .limit(100); // Limit to last 100 games for performance
-
-    if (error) {
-      console.error("Error fetching all answers:", error.message);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Unexpected error fetching all answers:", error);
-    return [];
   }
 };

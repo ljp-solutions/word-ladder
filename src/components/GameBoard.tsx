@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircleIcon, XCircleIcon, XMarkIcon, MagnifyingGlassIcon, ArrowPathIcon, ClockIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
 import SwitchIcon from "../components/appIcon";
 import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
-import { saveGameResult, fetchDailyAnswer, fetchLastFiveAnswers, fetchAllPreviousAnswers } from '../utils/gameService';
+import { saveGameResult, fetchDailyGame } from '../utils/gameService';
+import { isValidMove } from '../utils/moveValidation';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import HowToPlayModal from './HowToPlayModal';
 import HowToPlayButton from './HowToPlayButton';
 import { ShareButton } from './ShareButton';
+import InvalidMoveModal from './InvalidMoveModal';
+import WinningMessage from "./WinningMessage";
 
 const isLocalStorageAvailable = () => {
   try {
@@ -21,17 +24,46 @@ const isLocalStorageAvailable = () => {
   }
 };
 
+const InputRow: React.FC<{ 
+  userInput: string[], 
+  rowIndex: number, // Add rowIndex prop
+  handleInputChange: (index: number, value: string) => void, 
+  handleKeyPress: (e: React.KeyboardEvent) => void, 
+  inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>,
+  isActive: boolean
+}> = ({ userInput, rowIndex, handleInputChange, handleKeyPress, inputRefs, isActive }) => {
+  return (
+    <div className="flex justify-center gap-4 mt-1">
+      {userInput.map((letter, index) => (
+        <input
+          key={index}
+          type="text"
+          maxLength={1}
+          value={letter}
+          onChange={(e) => handleInputChange(index, e.target.value)}
+          onKeyPress={handleKeyPress}
+          ref={(el) => (inputRefs.current[rowIndex * 4 + index] = el)} // Update ref with correct index
+          disabled={!isActive}
+          className={`bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center
+            ${!isActive ? 'opacity-80 cursor-not-allowed' : ''}`}
+        />
+      ))}
+    </div>
+  );
+};
+
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
   const [message, setMessage] = useState<string>('');
   const { stats, updateStats } = useStats();
-  const [selectedChoice, setSelectedChoice] = useState<'left' | 'right' | null>(null);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
-  const [dailyAnswer, setDailyAnswer] = useState<string | null>(null);
+  const [startWord, setStartWord] = useState<string | null>(null);
+  const [targetWord, setTargetWord] = useState<string | null>(null);
+  const [jokerSteps, setJokerSteps] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recentAnswers, setRecentAnswers] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
   const [showModal, setShowModal] = useState(false);
   const [allResults, setAllResults] = useState<Array<{ correct_answer: string; game_date: string }>>([]);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -40,43 +72,34 @@ export const GameBoard: React.FC = () => {
   const [hasPlayedToday, setHasPlayedToday] = useState(false);
   const storageAvailable = isLocalStorageAvailable();
   const [showPlayedMessage, setShowPlayedMessage] = useState(false);
-  const [todayResult, setTodayResult] = useState<{ choice: string; won: boolean } | null>(null);
+  const [todayResult, setTodayResult] = useState<{ word: string; won: boolean } | null>(null);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [totalWeeks, setTotalWeeks] = useState(0);
+  const [userInputs, setUserInputs] = useState<string[][]>([['', '', '', '']]);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(100).fill(null)); // Increase array size to handle multiple rows
+  const [invalidMoveMessage, setInvalidMoveMessage] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [pendingFocus, setPendingFocus] = useState<number | null>(null);
+  const [showWinningMessage, setShowWinningMessage] = useState(false);
+  const [turnsTaken, setTurnsTaken] = useState(0);
 
   useEffect(() => {
-    const loadDailyAnswer = async () => {
+    const loadDailyGame = async () => {
       setIsLoading(true);
-      const answer = await fetchDailyAnswer();
-      if (answer) {
-        setDailyAnswer(answer);
+      const gameData = await fetchDailyGame();
+      if (gameData) {
+        setStartWord(gameData.start_word);
+        setTargetWord(gameData.target_word);
+        setJokerSteps(gameData.joker_steps);
       } else {
-        setError("Unable to fetch today's answer");
+        setError("Unable to fetch today's game data");
       }
       setIsLoading(false);
     };
 
-    loadDailyAnswer();
+    loadDailyGame();
   }, []);
 
-  useEffect(() => {
-    const loadAnswers = async () => {
-      const answers = await fetchLastFiveAnswers();
-      setRecentAnswers(answers);
-    };
-    loadAnswers();
-  }, []);
-
-  // Add new effect to fetch all results
-  useEffect(() => {
-    const loadAllResults = async () => {
-      const results = await fetchAllPreviousAnswers();
-      setAllResults(results);
-    };
-    loadAllResults();
-  }, []);
-
-  // Add countdown timer effect
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
@@ -99,7 +122,6 @@ export const GameBoard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Add effect to check last played date
   useEffect(() => {
     if (!storageAvailable || isTestMode) return;
     
@@ -117,30 +139,63 @@ export const GameBoard: React.FC = () => {
     }
   }, [isTestMode, storageAvailable]);
 
-  const handleChoice = useCallback(async (choice: 'left' | 'right') => {
-    if (isLoading || !dailyAnswer || gameState !== 'playing') return;
+  // Add this new useEffect to handle focusing on new rows
+  useEffect(() => {
+    const lastRowIndex = userInputs.length - 1;
+    if (lastRowIndex > 0) { // Only focus if we have more than one row
+      inputRefs.current[lastRowIndex * 4]?.focus();
+    }
+  }, [userInputs.length]); // Trigger when number of rows changes
 
-    setSelectedChoice(choice);
-    const won = choice === dailyAnswer;
+  // Add useEffect to handle scrolling
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [userInputs.length]);
+
+  // Add new useEffect for initial focus
+  useEffect(() => {
+    if (!isLoading && inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, [isLoading]);
+
+  // Add new useEffect to handle focusing after new row is added
+  useEffect(() => {
+    if (pendingFocus !== null) {
+      const inputToFocus = inputRefs.current[pendingFocus];
+      if (inputToFocus) {
+        inputToFocus.focus();
+      }
+      setPendingFocus(null);
+    }
+  }, [pendingFocus]);
+
+  const handleChoice = useCallback(async (word: string) => {
+    if (isLoading || !targetWord || gameState !== 'playing') return;
+
+    setSelectedWord(word);
+    const won = word === targetWord;
     const newStreak = updateStats(won);
 
-    // Save play date to localStorage with availability check
     if (!isTestMode && storageAvailable) {
       try {
         localStorage.setItem("lastPlayedDate", new Date().toDateString());
-        localStorage.setItem("todayResult", JSON.stringify({ choice, won }));
+        localStorage.setItem("todayResult", JSON.stringify({ word, won }));
         
-        setTodayResult({ choice, won });
+        setTodayResult({ word, won });
       } catch (error) {
         console.warn('Failed to save play date:', error);
       }
     }
 
-    // Add delay before showing result
     setGameState(won ? 'won' : 'lost');
     setMessage(won ? 'You Win!' : 'Try Again Tomorrow!');
     
-    // Show result after delay
     setTimeout(() => {
       setShowResult(true);
       if (won) {
@@ -154,23 +209,21 @@ export const GameBoard: React.FC = () => {
     } catch (error) {
       console.error('Failed to save game result:', error);
     }
-  }, [dailyAnswer, gameState, isLoading, updateStats, isTestMode, storageAvailable]);
+  }, [targetWord, gameState, isLoading, updateStats, isTestMode, storageAvailable]);
 
   const resetGame = useCallback(() => {
     setGameState('playing');
     setMessage('');
-    setSelectedChoice(null); // Reset selected choice
+    setSelectedWord(null);
   }, []);
 
   const groupResultsByWeek = (results: typeof allResults) => {
     if (!results.length) return [];
 
-    // Sort results by date in ascending order (oldest first)
     const sortedResults = [...results].sort((a, b) => 
       new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
     );
 
-    // Group into weeks of 7 days
     const weeks: typeof allResults[] = [];
     let currentWeek: typeof allResults = [];
 
@@ -185,34 +238,97 @@ export const GameBoard: React.FC = () => {
     return weeks;
   };
 
-  // Update total weeks count when allResults changes
   useEffect(() => {
     const weeks = groupResultsByWeek(allResults);
     setTotalWeeks(weeks.length);
   }, [allResults]);
 
-  // Add debug effect
-  useEffect(() => {
-    console.log('All Results:', allResults);
-    console.log('Current Weeks:', groupResultsByWeek(allResults).slice(currentWeekOffset, currentWeekOffset + 4));
-  }, [allResults, currentWeekOffset]);
+  const handleInputChange = (rowIndex: number, index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    // Update input value
+    const newInputs = [...userInputs];
+    newInputs[rowIndex][index] = value.toUpperCase();
+    setUserInputs(newInputs);
+    
+    // Move to next input in same row if value was entered
+    if (value && index < 3) { // Only move if not last input in row
+      const nextInputIndex = rowIndex * 4 + index + 1;
+      const nextInput = inputRefs.current[nextInputIndex];
+      if (nextInput) {
+        nextInput.focus();
+      }
+    }
+  };
+
+  const handleMove = async (newWord: string, rowIndex: number) => {
+    if (!startWord || !targetWord) return;
+
+    const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
+
+    console.log('Debug win condition:');
+    console.log('newWord:', newWord, 'type:', typeof newWord);
+    console.log('targetWord:', targetWord, 'type:', typeof targetWord);
+    console.log('Comparison result:', newWord.toUpperCase() === targetWord.toUpperCase());
+
+    if (await isValidMove(lastWord, newWord)) {
+      setTurnsTaken(rowIndex + 1);
+
+      // Check win condition with detailed logging
+      const normalizedNew = newWord.toUpperCase();
+      const normalizedTarget = targetWord.toUpperCase();
+      console.log('Normalized comparison:');
+      console.log('normalizedNew:', normalizedNew);
+      console.log('normalizedTarget:', normalizedTarget);
+      console.log('Match?:', normalizedNew === normalizedTarget);
+
+      if (normalizedNew === normalizedTarget) {
+        console.log('Win condition met! Showing winning message...');
+        setGameState('won');
+        setShowWinningMessage(true);
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 5000);
+        handleChoice(newWord);
+        return;
+      }
+      
+      // Continue with normal move
+      const nextRowIndex = rowIndex + 1;
+      setUserInputs([...userInputs, ['', '', '', '']]);
+      
+      setTimeout(() => {
+        const firstInput = inputRefs.current[nextRowIndex * 4];
+        if (firstInput) firstInput.focus();
+      }, 50);
+
+      handleChoice(newWord);
+    } else {
+      setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, rowIndex: number) => {
+    if (e.key === 'Enter') {
+      handleMove(userInputs[rowIndex].join(''), rowIndex);
+    }
+  };
+
+  const handleInvalidMoveClose = () => {
+    setInvalidMoveMessage(null);
+    const newInputs = [...userInputs];
+    newInputs[newInputs.length - 1] = ['', '', '', ''];
+    setUserInputs(newInputs);
+  };
 
   if (isLoading) return <div></div>;
   if (error) return <div>{error}</div>;
-  if (!dailyAnswer) return <div>No game available today</div>;
+  if (!startWord) return <div>No game available today</div>;
 
   return (
     <motion.div className="relative flex flex-col min-h-screen h-screen w-full max-w-full 
-                px-6 md:px-8 overflow-hidden">
-      {/* Stats and Help Buttons - Fixed positioning without relative */}
-      <div className="fixed top-4 right-4 z-10 flex items-center justify-end space-x-2">
-        <HowToPlayButton onClick={() => setShowHowToPlay(true)} />
-        <StatsButton />
-      </div>
-
-      <div className="w-full max-w-lg mx-auto flex flex-col flex-grow 
-                space-y-12 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
-        
+                px-6 md:px-8 overflow-hidden font-sans">
+      
+      <div className="w-full max-w-lg mx-auto flex flex-col flex-grow space-y-8 md:space-y-10 pt-8 pb-0 md:py-6 md:justify-center">
         {/* Title Section */}
         <div className="h-36 md:h-auto flex flex-col items-center justify-center md:pb-4 font-sans">
           <div className="inline-flex flex-col items-center gap-2">
@@ -222,346 +338,111 @@ export const GameBoard: React.FC = () => {
               <span className="font-thin text-gray-300 tracking-[0.02em]"> today</span>
             </h1>
           </div>
-          <p className="text-base md:text-lg text-gray-100 opacity-90 mt-2">
-            A simple choice... or is it?
-          </p>
         </div>
-
-        {/* Recent Answers - Horizontal Cards */}
-        <div className="w-full mt-4 md:mt-0 mb-9 md:mb-10">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h3 className="text-white/90 text-sm md:text-base font-medium">Recent Answers</h3>
-            <button 
-              onClick={() => setShowModal(true)}
-              className="w-6 h-6 rounded-full bg-gray-700/60 hover:bg-gray-600/80 
-                       transition-all duration-300 flex items-center justify-center
-                       border border-white/10"
-              aria-label="View All Results"
-            >
-              <EllipsisHorizontalIcon className="w-5 h-5 text-white/70" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-5 gap-2 px-1">
-            {[...recentAnswers].reverse().map((answer, index) => {
-              const date = new Date(answer.game_date);
-              const dayName = new Intl.DateTimeFormat("en-US", { 
-                weekday: "short" 
-              }).format(date);
-
-              return (
-                <div 
-                  key={index} 
-                  className="bg-gray-800/30 rounded-lg p-2.5
-                           border border-white/5 backdrop-blur-sm
-                           flex flex-col items-center gap-2
-                           hover:bg-gray-800/40 transition-all duration-300"
+        
+        {(!hasPlayedToday || isTestMode) ? (
+          <>
+            <div className="flex justify-center gap-4 mb-1"> {/* Added mb-1 to reduce gap */}
+              {startWord.split('').map((letter, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center"
                 >
-                  <div className={`
-                    w-7 h-7 md:w-8 md:h-8 rounded-full 
-                    flex items-center justify-center
-                    transition-all duration-300
-                    ${answer.correct_answer === 'left'
-                      ? 'bg-blue-500/80 border-blue-400/30' 
-                      : 'bg-green-500/80 border-green-400/30'
-                    }
-                    border backdrop-blur-sm
-                  `}>
-                    <span className="text-xs md:text-sm font-bold text-white/90">
-                      {answer.correct_answer === 'left' ? 'L' : 'R'}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-300 font-medium">
-                    {dayName}
-                  </span>
+                  {letter}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Game Area or Already Played Message */}
-        <div className="h-auto flex flex-col items-center justify-center">
-          {(!hasPlayedToday || isTestMode) ? (
-            // Game Buttons
-            <div className="flex flex-wrap md:flex-nowrap gap-3 md:gap-8 items-center justify-center w-full">
-              {['left', 'right'].map((side) => (
-                <motion.button
-                  key={side}
-                  onClick={() => handleChoice(side as 'left' | 'right')}
-                  disabled={gameState !== 'playing' || (!isTestMode && hasPlayedToday)}
-                  whileTap={{ scale: 0.95 }}
-                  animate={
-                    selectedChoice === side && gameState !== 'playing'
-                      ? { 
-                          scale: [1, 1.1, 1.05],
-                          transition: { duration: 0.3 }
-                        } 
-                      : {
-                          scale: 1,
-                          transition: { duration: 0.3 }
-                        }
-                  }
-                  className={`
-                    w-28 h-28 md:w-36 md:h-36
-                    rounded-lg text-lg md:text-2xl font-bold uppercase tracking-wide
-                    transition-all duration-300 ease-out
-                    border border-white/5 backdrop-blur-sm
-                    flex flex-col items-center justify-center gap-2
-                    ${(gameState === 'playing' && (!hasPlayedToday || isTestMode))
-                      ? `
-                        bg-gray-800/30
-                        hover:bg-gray-800/40
-                        hover:scale-[1.02]
-                        hover:shadow-lg
-                        ${side === 'left' 
-                          ? 'text-blue-300 hover:text-blue-200 hover:border-blue-500/20' 
-                          : 'text-green-300 hover:text-green-200 hover:border-green-500/20'
-                        }
-                        active:scale-95
-                      `
-                      : `
-                        cursor-not-allowed
-                        ${selectedChoice === side 
-                          ? gameState === 'won'
-                            ? 'bg-green-500/10 text-green-300 border-green-500/20'
-                            : 'bg-red-500/10 text-red-300 border-red-500/20'
-                          : 'bg-gray-800/20 text-white/20'
-                        }
-                      `
-                    }
-                  `}
-                >
-                  <span>{side}</span>
-                  <span className="text-2xl md:text-3xl opacity-90">
-                    {side === 'left' ? '←' : '→'}
-                  </span>
-                </motion.button>
               ))}
             </div>
-          ) : (
-            // Already played message with today's result
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="w-full max-w-sm mx-auto bg-gray-800/50 rounded-xl p-6
-                        backdrop-blur-md border border-gray-700/30
-                        flex flex-col items-center gap-4"
+            {/* Adjusted height to fit exactly 3 rows (3 * 64px for height + gaps) */}
+            <div 
+              ref={scrollContainerRef}
+              className="h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
             >
-              <div className="flex items-center gap-3">
-                
-                <div>
-                  <h3 className="text-gray-100 font-medium text-lg">
-                    You've already played today
-                  </h3>
-                  <p className="text-gray-400 text-sm mt-0.5">
-                    Come back tomorrow for a new challenge!
-                  </p>
-                </div>
-              </div>
-
-              {todayResult && (
-                <div className="w-full flex flex-col items-center gap-3 mt-2">
-                  <div className={`
-                    w-full px-4 py-3 rounded-lg text-center
-                    ${todayResult.won 
-                      ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-                      : 'bg-red-500/20 text-red-300 border-red-500/30'
-                    } border
-                  `}>
-                    <span className="font-medium">
-                      You chose {todayResult.choice} - {todayResult.won ? 'Correct!' : 'Wrong!'}
-                    </span>
-                  </div>
-                  
-                  <div className="text-gray-400 text-sm">
-                    {timeLeft}
-                  </div>
-                </div>
-              )}
-              <div className="w-full flex justify-center mt-4">
-                <ShareButton won={todayResult?.won} />
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Results Area - Only show during gameplay */}
-        {(!hasPlayedToday || isTestMode) && (
-          <div className="h-40 md:h-auto flex flex-col items-center gap-0">
-            {message && !showResult && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center"
-              >
-                <motion.div
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    rotate: 360,
-                  }}
-                  transition={{ 
-                    duration: 2,
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                  }}
-                  className="relative"
-                >
-                  <motion.div
-                    animate={{
-                      opacity: [0.5, 1, 0.5],
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="absolute inset-0 bg-white/10 rounded-full blur-xl"
+              <div className="flex flex-col gap-1">
+                {userInputs.map((userInput, rowIndex) => (
+                  <InputRow
+                    key={rowIndex}
+                    rowIndex={rowIndex} // Pass rowIndex to InputRow
+                    userInput={userInput}
+                    handleInputChange={(index, value) => handleInputChange(rowIndex, index, value)}
+                    handleKeyPress={(e) => handleKeyPress(e, rowIndex)}
+                    inputRefs={inputRefs}
+                    isActive={rowIndex === userInputs.length - 1} // Only last row is active
                   />
-                  <ArrowPathIcon className="w-12 h-12 text-white/80" />
-                </motion.div>
-              </motion.div>
-            )}
-            {message && showResult && (
-              <div className="flex flex-col items-center gap-6">
-                <motion.div 
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`
-                    text-2xl md:text-3xl font-medium text-center 
-                    flex items-center gap-2 justify-center
-                    ${gameState === 'won' ? 'text-green-400' : 'text-red-400'}
-                  `}
-                >
-                  <span>{message}</span>
-                  {gameState === 'won' ? (
-                    <CheckCircleIcon className="w-8 h-8 text-green-400" />
-                  ) : (
-                    <XCircleIcon className="w-8 h-8 text-red-400" />
-                  )}
-                </motion.div>
-                <div className="flex justify-center w-full mt-1">
-                  <ShareButton won={gameState === 'won'} />
-                </div>
+                ))}
               </div>
-            )}
-            {gameState !== 'playing' && showResult && (
-              <div className="text-gray-400 text-sm mt-2">{timeLeft}</div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Modals remain unchanged */}
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={200}
-        />
-      )}
-      {showModal && (
-        <motion.div 
-          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div 
-            className="w-full bg-gray-900/95 rounded-xl shadow-xl
-                     border border-white/10 backdrop-blur-sm
-                     flex flex-col max-h-[85vh] md:max-h-[80vh] md:max-w-lg
-                     mx-auto my-auto overflow-hidden"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
-              <h3 className="text-white/90 text-base font-semibold">Previous Results</h3>
-              <button 
-                onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-full bg-gray-800/50 
-                         flex items-center justify-center
-                         text-gray-400 hover:text-white transition-colors"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {/* Navigation */}
-              <div className="sticky top-0 z-10 flex items-center justify-between p-4 
-                            bg-gray-900/95 border-b border-gray-800">
-                <button
-                  onClick={() => setCurrentWeekOffset(prev => Math.min(prev + 4, totalWeeks - 4))}
-                  disabled={currentWeekOffset >= totalWeeks - 4}
-                  className="p-2 text-sm text-gray-400 hover:text-white
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-colors duration-200"
-                >
-                  ← Older
-                </button>
-                <span className="text-gray-300 text-sm font-medium">
-                  {currentWeekOffset === 0 ? 'Latest Results' : `${totalWeeks - currentWeekOffset} weeks ago`}
-                </span>
-                <button
-                  onClick={() => setCurrentWeekOffset(prev => Math.max(0, prev - 4))}
-                  disabled={currentWeekOffset === 0}
-                  className="p-2 text-sm text-gray-400 hover:text-white
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-colors duration-200"
-                >
-                  Newer →
-                </button>
-              </div>
-
-              {/* Results Grid - Grouped by weeks */}
-              <div className="grid grid-cols-7 gap-2 p-4">
-                {groupResultsByWeek(allResults).slice(currentWeekOffset, currentWeekOffset + 4).flat().map((result, index) => (
-                  <div 
-                    key={result.game_date}
-                    className="aspect-square bg-gray-800/30 rounded-lg
-                             border border-white/5 backdrop-blur-sm
-                             flex flex-col items-center justify-center gap-1
-                             hover:bg-gray-800/40 transition-all duration-300"
+            {/* Add separator and target word section */}
+            <div className="border-t border-gray-700 w-1/2 mx-auto my-8"></div>
+            <div className="flex flex-col items-center gap-4 mt-8">
+              <h3 className="text-gray-400">Target Word:</h3>
+              <div className="flex gap-4">
+                {targetWord?.split('').map((letter, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-700 font-light text-gray-200 p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center shadow-lg"
                   >
-                    <span className="text-[0.65rem] text-gray-400 font-medium">
-                      {new Intl.DateTimeFormat("en-US", { 
-                        weekday: "short" 
-                      }).format(new Date(result.game_date))}
-                    </span>
-                    <div className={`
-                      w-6 h-6 rounded-full 
-                      flex items-center justify-center
-                      ${result.correct_answer === 'left'
-                        ? 'bg-blue-500/80 border-blue-400/30' 
-                        : 'bg-green-500/80 border-green-400/30'
-                      }
-                      border backdrop-blur-sm
-                    `}>
-                      <span className="text-[0.65rem] font-bold text-white/90">
-                        {result.correct_answer === 'left' ? 'L' : 'R'}
-                      </span>
-                    </div>
-                    <span className="text-[0.65rem] text-gray-500">
-                      {new Date(result.game_date).getDate()}
-                    </span>
+                    {letter}
                   </div>
                 ))}
               </div>
-
-              {allResults.length === 0 && (
-                <div className="p-8 text-center">
-                  <p className="text-gray-400 text-sm">No results available yet</p>
+            </div>
+          </>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full max-w-sm mx-auto bg-gray-800/50 rounded-xl p-6
+                      backdrop-blur-md border border-gray-700/30
+                      flex flex-col items-center gap-4 mt-6"
+          >
+            <div className="flex items-center gap-3">
+              <div>
+                <h3 className="text-gray-100 font-medium text-lg font-sans">
+                  You've already played today
+                </h3>
+                <p className="text-gray-400 text-sm mt-0.5 font-sans">
+                  Come back tomorrow for a new challenge!
+                </p>
+              </div>
+            </div>
+            {todayResult && (
+              <div className="w-full flex flex-col items-center gap-3 mt-2">
+                <div className={`
+                  w-full px-4 py-3 rounded-lg text-center
+                  ${todayResult.won 
+                    ? 'bg-green-500/20 text-green-300 border-green-500/30' 
+                    : 'bg-red-500/20 text-red-300 border-red-500/30'
+                  } border
+                `}>
+                  <span className="font-medium font-sans">
+                    You chose {todayResult.word} - {todayResult.won ? 'Correct!' : 'Wrong!'}
+                  </span>
                 </div>
-              )}
+                <div className="text-gray-400 text-sm font-sans">
+                  {timeLeft}
+                </div>
+              </div>
+            )}
+            <div className="w-full flex justify-center mt-4">
+              <ShareButton won={todayResult?.won} />
             </div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </div>
+      
       {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
+      {invalidMoveMessage && (
+        <InvalidMoveModal
+          onClose={handleInvalidMoveClose}
+          message={invalidMoveMessage}
+        />
+      )}
+      {showWinningMessage && (
+        <WinningMessage 
+          turnsTaken={turnsTaken} 
+          onClose={() => setShowWinningMessage(false)} 
+        />
+      )}
     </motion.div>
   );
 };
