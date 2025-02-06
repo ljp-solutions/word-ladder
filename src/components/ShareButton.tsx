@@ -2,40 +2,44 @@ import { ShareIcon } from '@heroicons/react/24/outline';
 
 interface ShareButtonProps {
   won: boolean;
+  turns?: number;
 }
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ won }) => {
-  const shareUrl = 'https://right-today.vercel.app';
-  const displayText = `⬅️ ➡️ Right Today\n\n${won ? '✅ I got it right today!' : '❌ I lost today!'}\n\nCan you get it right today?\n\n${shareUrl}`;
+export const ShareButton: React.FC<ShareButtonProps> = ({ won, turns }) => {
+  const shareUrl = 'https://swapple.vercel.app/';
+  const emoji = won ? '✅' : '❌';
+  const turnsText = turns ? ` in ${turns} ${turns === 1 ? 'turn' : 'turns'}` : '';
+  
+  const displayText = `🎯 SWAPPLE\n\n${emoji} ${won ? `Got it${turnsText}!` : "Didn't get today's word"}\n\n🎲 Change or swap letters to reach the target word.\n\nPlay at ${shareUrl}`;
 
   const handleShare = async () => {
-    const canShare = 'share' in navigator && 
-                    navigator.canShare && 
-                    navigator.canShare({ text: displayText });
+    const shareData = {
+      text: displayText,
+      title: 'SWAPPLE - Daily Word Game',
+      url: shareUrl
+    };
 
     try {
-      if (canShare) {
-        await navigator.share({
-          title: 'Right Today',
-          text: displayText,
-          url: shareUrl
-        });
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(displayText);
+        alert('Copied to clipboard!');
       } else {
-        await fallbackToClipboard();
+        prompt('Copy this text to share:', displayText);
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-      await fallbackToClipboard();
-    }
-  };
-
-  const fallbackToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(displayText);
-      alert('Copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      alert('Please copy this text manually:\n\n' + displayText);
+      if (error instanceof Error && error.name === 'AbortError') {
+        // User canceled share, do nothing
+        return;
+      }
+      // Fallback if sharing failed
+      try {
+        await navigator.clipboard.writeText(displayText);
+        alert('Copied to clipboard!');
+      } catch {
+        prompt('Copy this text to share:', displayText);
+      }
     }
   };
 

@@ -9,10 +9,10 @@ export const Header = () => {
 
   return (
     <>
-      <header className="relative flex items-center justify-between w-full px-6 py-4">
+      <header className="relative flex items-center justify-between w-full px-4 py-1">
         <div className="flex items-center gap-3">
           <SwitchIcon />
-          <h1 className="text-4xl md:text-5xl font-thin drop-shadow-lg 
+          <h1 className="text-3xl md:text-5xl font-thin drop-shadow-lg 
                         bg-gradient-to-r from-blue-400 via-green-300 to-yellow-400 
                         text-transparent bg-clip-text tracking-wide relative">
             Swapple

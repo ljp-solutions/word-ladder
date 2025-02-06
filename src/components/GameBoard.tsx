@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { StatsButton } from './StatsButton';
 import { useStats } from '../hooks/useStats';
 import { saveGameResult, fetchDailyGame } from '../utils/gameService';
 import { isValidMove } from '../utils/moveValidation';
@@ -26,12 +25,12 @@ const InputRow: React.FC<{
   userInput: string[], 
   rowIndex: number, // Add rowIndex prop
   handleInputChange: (index: number, value: string) => void, 
-  handleKeyPress: (e: React.KeyboardEvent) => void, 
+  handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number) => void,  // Update type
   inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>,
   isActive: boolean
 }> = ({ userInput, rowIndex, handleInputChange, handleKeyPress, inputRefs, isActive }) => {
   return (
-    <div className="flex justify-center gap-4 mt-1">
+    <div className="flex justify-center gap-3 px-2 py-1">
       {userInput.map((letter, index) => (
         <input
           key={index}
@@ -39,10 +38,10 @@ const InputRow: React.FC<{
           maxLength={1}
           value={letter}
           onChange={(e) => handleInputChange(index, e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={(e) => handleKeyPress(e, rowIndex)}  // Change to onKeyDown and pass rowIndex
           ref={(el) => (inputRefs.current[rowIndex * 4 + index] = el)} // Update ref with correct index
           disabled={!isActive}
-          className={`bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center
+          className={`bg-gray-800 font-light text-white p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center
             ${!isActive ? 'opacity-80 cursor-not-allowed' : ''}`}
         />
       ))}
@@ -218,7 +217,7 @@ export const GameBoard: React.FC = () => {
       }
 
       // If this was the last allowed guess and they didn't win
-      if (currentTurn >= 6) {  // Assuming 6 is max turns
+      if (currentTurn >= 50) {  // Assuming 6 is max turns
         setGameState('lost');
         setJustCompleted(true); // Set flag when game is lost too
         
@@ -266,19 +265,29 @@ export const GameBoard: React.FC = () => {
     newInputs[rowIndex][index] = value.toUpperCase();
     setUserInputs(newInputs);
     
+    // Ensure input is visible when typing
+    const currentInput = inputRefs.current[rowIndex * 4 + index];
+    currentInput?.scrollIntoView({ behavior: "smooth", block: "center" });
+    
     // Move to next input in same row if value was entered
     if (value && index < 3) { // Only move if not last input in row
       const nextInputIndex = rowIndex * 4 + index + 1;
       const nextInput = inputRefs.current[nextInputIndex];
       if (nextInput) {
         nextInput.focus();
+        nextInput.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent, rowIndex: number) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number) => {
     if (e.key === 'Enter') {
-      handleMove(userInputs[rowIndex].join(''), rowIndex);
+      e.preventDefault(); // Prevent default Enter behavior
+      const word = userInputs[rowIndex].join('');
+      if (word.length === 4) {
+        console.log('Processing word:', word); // Debug log
+        handleMove(word, rowIndex);
+      }
     }
   };
 
@@ -295,19 +304,19 @@ export const GameBoard: React.FC = () => {
   if (!startWord) return <div>No game available today</div>;
 
   return (
-    <motion.div className="flex flex-col w-full">
-      <div className="flex flex-col flex-grow space-y-8 md:space-y-10 pt-8 pb-0 md:py-6">
+    <motion.div className="flex flex-col w-full min-h-[100dvh]">
+      <div className="flex flex-col h-full space-y-2">
         {(!hasPlayedToday || isTestMode || justCompleted) ? (
           <>
-            {/* Starting Word Panel */}
-            <div className="flex flex-col items-center">
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-4">
-                <div className="text-gray-400 font-medium text-sm mb-3 text-center">START</div>
-                <div className="flex justify-center gap-4">
+            {/* Start Word - Fixed position at top */}
+            <div className="flex flex-col items-center px-4 py-2">
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-2">
+                <div className="text-gray-400 font-medium text-sm mb-2 text-center">START</div>
+                <div className="flex justify-center gap-3">
                   {startWord?.split('').map((letter, index) => (
                     <div
                       key={index}
-                      className="bg-gray-800 font-light text-white p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center"
+                      className="bg-gray-800 font-light text-white p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
                     >
                       {letter}
                     </div>
@@ -316,35 +325,53 @@ export const GameBoard: React.FC = () => {
               </div>
             </div>
 
-            {/* Input Area */}
-            <div 
-              ref={scrollContainerRef}
-              className="h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
-            >
-              <div className="flex flex-col gap-1">
-                {userInputs.map((userInput, rowIndex) => (
+            {/* Fixed height container for 3 visible rows */}
+            <div className="px-4 h-[240px]">
+              <div className="h-full flex flex-col gap-1">
+                {userInputs.slice(Math.max(0, userInputs.length - 3)).map((userInput, idx) => (
                   <InputRow
-                    key={rowIndex}
-                    rowIndex={rowIndex} // Pass rowIndex to InputRow
+                    key={`visible-${idx}`}
+                    rowIndex={Math.max(0, userInputs.length - 3) + idx}
                     userInput={userInput}
-                    handleInputChange={(index, value) => handleInputChange(rowIndex, index, value)}
-                    handleKeyPress={(e) => handleKeyPress(e, rowIndex)}
+                    handleInputChange={(index, value) => handleInputChange(Math.max(0, userInputs.length - 3) + idx, index, value)}
+                    handleKeyPress={(e) => handleKeyPress(e, Math.max(0, userInputs.length - 3) + idx)}
                     inputRefs={inputRefs}
-                    isActive={rowIndex === userInputs.length - 1} // Only last row is active
+                    isActive={Math.max(0, userInputs.length - 3) + idx === userInputs.length - 1}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Target Word Panel */}
-            <div className="flex flex-col items-center">
-              <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-4 shadow-lg">
-                <div className="text-gray-400 font-medium text-sm mb-3 text-center">TARGET</div>
-                <div className="flex gap-4">
+            {/* Scrollable history of previous guesses */}
+            <div 
+              ref={scrollContainerRef}
+              className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent px-4"
+              style={{ maxHeight: '0px', visibility: 'hidden' }}
+            >
+              <div className="flex flex-col gap-1">
+                {userInputs.slice(0, Math.max(0, userInputs.length - 3)).map((userInput, idx) => (
+                  <InputRow
+                    key={`hidden-${idx}`}
+                    rowIndex={idx}
+                    userInput={userInput}
+                    handleInputChange={(index, value) => handleInputChange(idx, index, value)}
+                    handleKeyPress={(e) => handleKeyPress(e, idx)}
+                    inputRefs={inputRefs}
+                    isActive={false}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Target Word - Fixed position at bottom */}
+            <div className="flex flex-col items-center px-4 py-2 mt-auto">
+              <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-2">
+                <div className="text-gray-400 font-medium text-sm mb-2 text-center">TARGET</div>
+                <div className="flex justify-center gap-3">
                   {targetWord?.split('').map((letter, index) => (
                     <div
                       key={index}
-                      className="bg-gray-700 font-light text-gray-200 p-4 rounded-lg text-center w-16 h-16 uppercase text-4xl flex items-center justify-center shadow-lg"
+                      className="bg-gray-700 font-light text-gray-200 p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
                     >
                       {letter}
                     </div>
@@ -397,7 +424,10 @@ export const GameBoard: React.FC = () => {
               </div>
             )}
             <div className="w-full flex justify-center mt-4">
-              <ShareButton won={todayResult?.won} />
+              <ShareButton 
+                won={todayResult?.won} 
+                turns={todayResult?.turns}
+              />
             </div>
           </motion.div>
         )}
