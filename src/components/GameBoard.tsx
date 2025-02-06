@@ -41,8 +41,11 @@ const InputRow: React.FC<{
           onKeyDown={(e) => handleKeyPress(e, rowIndex)}  // Change to onKeyDown and pass rowIndex
           ref={(el) => (inputRefs.current[rowIndex * 4 + index] = el)} // Update ref with correct index
           disabled={!isActive}
-          className={`bg-gray-800 font-light text-white p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center
-            ${!isActive ? 'opacity-80 cursor-not-allowed' : ''}`}
+          className={`bg-gray-800 font-light text-white p-3 rounded-lg text-center 
+            w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl 
+            flex items-center justify-center caret-transparent
+            focus:outline-none focus:ring-2 focus:ring-blue-500
+            ${!isActive ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'}`}
         />
       ))}
     </div>
