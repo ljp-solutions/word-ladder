@@ -82,6 +82,9 @@ export const GameBoard: React.FC = () => {
   const [showWinningMessage, setShowWinningMessage] = useState(false);
   const [turnsTaken, setTurnsTaken] = useState(0);
 
+  // Add containerRef for scrolling management
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const loadDailyGame = async () => {
       setIsLoading(true);
@@ -173,6 +176,39 @@ export const GameBoard: React.FC = () => {
       setPendingFocus(null);
     }
   }, [pendingFocus]);
+
+  // Add this effect to handle auto-scrolling to latest row
+  useEffect(() => {
+    const lastRowIndex = userInputs.length - 1;
+    if (lastRowIndex >= 0) {
+      const lastInput = inputRefs.current[lastRowIndex * 4];
+      if (lastInput) {
+        lastInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [userInputs.length]);
+
+  // Replace existing scroll effect with this optimized version
+  useEffect(() => {
+    const lastRowIndex = userInputs.length - 1;
+    if (lastRowIndex >= 0 && containerRef.current) {
+      const lastRow = containerRef.current.lastElementChild;
+      if (lastRow) {
+        lastRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  }, [userInputs.length]);
+
+  // Update the scroll effect to always show the latest row
+  useEffect(() => {
+    if (containerRef.current) {
+      const rows = containerRef.current.querySelectorAll('.input-row');
+      const lastRow = rows[rows.length - 1];
+      if (lastRow) {
+        lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
+  }, [userInputs.length]);
 
   const handleMove = async (newWord: string, rowIndex: number) => {
     if (!startWord || !targetWord) return;
@@ -275,7 +311,6 @@ export const GameBoard: React.FC = () => {
       const nextInput = inputRefs.current[nextInputIndex];
       if (nextInput) {
         nextInput.focus();
-        nextInput.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }
   };
@@ -305,11 +340,11 @@ export const GameBoard: React.FC = () => {
 
   return (
     <motion.div className="flex flex-col w-full min-h-[100dvh]">
-      <div className="flex flex-col h-full space-y-2">
+      <div className="flex flex-col h-full">
         {(!hasPlayedToday || isTestMode || justCompleted) ? (
-          <>
-            {/* Start Word - Fixed position at top */}
-            <div className="flex flex-col items-center px-4 py-2">
+          <div className="grid grid-rows-[auto_1fr_auto] h-full gap-3 pt-4"> {/* Changed gap-1 to gap-3 */}
+            {/* Section 1: Start Word - Fixed at top */}
+            <div className="flex flex-col items-center px-4">
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-2">
                 <div className="text-gray-400 font-medium text-sm mb-2 text-center">START</div>
                 <div className="flex justify-center gap-3">
@@ -325,46 +360,33 @@ export const GameBoard: React.FC = () => {
               </div>
             </div>
 
-            {/* Fixed height container for 3 visible rows */}
-            <div className="px-4 h-[240px]">
-              <div className="h-full flex flex-col gap-1">
-                {userInputs.slice(Math.max(0, userInputs.length - 3)).map((userInput, idx) => (
-                  <InputRow
-                    key={`visible-${idx}`}
-                    rowIndex={Math.max(0, userInputs.length - 3) + idx}
-                    userInput={userInput}
-                    handleInputChange={(index, value) => handleInputChange(Math.max(0, userInputs.length - 3) + idx, index, value)}
-                    handleKeyPress={(e) => handleKeyPress(e, Math.max(0, userInputs.length - 3) + idx)}
-                    inputRefs={inputRefs}
-                    isActive={Math.max(0, userInputs.length - 3) + idx === userInputs.length - 1}
-                  />
-                ))}
+            {/* Section 2: Input Area - Scrollable middle section */}
+            <div className="flex flex-col px-4">
+              <div className="h-[198px] relative"> {/* Height for exactly 3 rows (56px each) */}
+                <div 
+                  ref={containerRef}
+                  className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+                >
+                  <div className="flex flex-col space-y-1"> {/* Added space-y-2 for consistent gap */}
+                    {userInputs.map((userInput, idx) => (
+                      <div key={`input-${idx}`} className="input-row">
+                        <InputRow
+                          rowIndex={idx}
+                          userInput={userInput}
+                          handleInputChange={(index, value) => handleInputChange(idx, index, value)}
+                          handleKeyPress={(e) => handleKeyPress(e, idx)}
+                          inputRefs={inputRefs}
+                          isActive={idx === userInputs.length - 1}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Scrollable history of previous guesses */}
-            <div 
-              ref={scrollContainerRef}
-              className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent px-4"
-              style={{ maxHeight: '0px', visibility: 'hidden' }}
-            >
-              <div className="flex flex-col gap-1">
-                {userInputs.slice(0, Math.max(0, userInputs.length - 3)).map((userInput, idx) => (
-                  <InputRow
-                    key={`hidden-${idx}`}
-                    rowIndex={idx}
-                    userInput={userInput}
-                    handleInputChange={(index, value) => handleInputChange(idx, index, value)}
-                    handleKeyPress={(e) => handleKeyPress(e, idx)}
-                    inputRefs={inputRefs}
-                    isActive={false}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Target Word - Fixed position at bottom */}
-            <div className="flex flex-col items-center px-4 py-2 mt-auto">
+            {/* Section 3: Target Word - Fixed at bottom */}
+            <div className="flex flex-col items-center px-4 pb-2">  {/* Removed mt-1 */}
               <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-2">
                 <div className="text-gray-400 font-medium text-sm mb-2 text-center">TARGET</div>
                 <div className="flex justify-center gap-3">
@@ -379,7 +401,9 @@ export const GameBoard: React.FC = () => {
                 </div>
               </div>
             </div>
-          </>
+
+            {/* Remove hidden history section as we're now showing all inputs */}
+          </div>
         ) : (
           <motion.div 
             initial={{ opacity: 0 }}
