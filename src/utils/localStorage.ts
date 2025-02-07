@@ -1,6 +1,7 @@
 import { GameStats } from '../types';
 
-const STORAGE_KEY = 'rightToday_gameStats';
+const STORAGE_KEY = 'swapple_gameStats';
+const FIRST_VISIT_KEY = 'swapple_firstVisit';
 
 const defaultStats: GameStats = {
   currentStreak: 0,
@@ -33,4 +34,12 @@ export const saveStats = (stats: GameStats): void => {
   } catch (error) {
     console.warn('Failed to save stats to localStorage:', error);
   }
+};
+
+export const isFirstVisit = (): boolean => {
+  return localStorage.getItem(FIRST_VISIT_KEY) === null;
+};
+
+export const markFirstVisitComplete = (): void => {
+  localStorage.setItem(FIRST_VISIT_KEY, 'visited');
 };

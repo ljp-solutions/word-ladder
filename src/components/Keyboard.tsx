@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => void, onEnter: () => void }> = ({ onKeyPress, onDelete, onEnter }) => {
   const rows = [
@@ -7,21 +7,31 @@ const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => vo
     ["Z", "X", "C", "V", "B", "N", "M"]
   ];
 
-  const keyClasses = "min-w-[36px] h-[48px] bg-gray-700 rounded-lg text-white font-medium text-lg flex items-center justify-center hover:bg-gray-600 active:bg-gray-500 transition-colors";
-  const deleteClasses = "bg-red-500 hover:bg-red-400 active:bg-red-600";
-  const enterClasses = "bg-green-500 hover:bg-green-400 active:bg-green-600";
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  const handleKeyPress = (key: string) => {
+    setActiveKey(key);
+    onKeyPress(key);
+
+    setTimeout(() => {
+      setActiveKey(null);
+    }, 150); // Highlight key for 150ms
+  };
+
+  const letterKeyClasses = "w-[60px] h-[55px] bg-gray-700 rounded-lg text-white font-bold text-lg hover:bg-gray-600 active:bg-gray-500 transition-all flex items-center justify-center";
+  const specialKeyClasses = "w-[75px] h-[54px] rounded-lg text-white font-medium text-lg flex items-center justify-center transition-all";
 
   return (
-    <div className="grid gap-2 w-full">
+    <div className="flex flex-col gap-2 w-full max-w-[650px] mx-auto px-1">
       {/* First Row */}
-      <div className="grid grid-cols-10 gap-1">
+      <div className="flex justify-center gap-1.5">
         {rows[0].map((key) => (
           <button
             key={key}
-            className={keyClasses}
+            className={letterKeyClasses}
             onMouseDown={(e) => {
               e.preventDefault();
-              onKeyPress(key);
+              handleKeyPress(key);
             }}
           >
             {key}
@@ -29,29 +39,33 @@ const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => vo
         ))}
       </div>
 
-      {/* Second Row */}
-      <div className="grid grid-cols-9 gap-1 px-[5%]">
+      {/* Second Row - With Offset */}
+      <div className="flex justify-center gap-1.5">
+        <div className="w-[30px]"></div> {/* Offset Spacer */}
         {rows[1].map((key) => (
           <button
             key={key}
-            className={keyClasses}
+            className={letterKeyClasses}
             onMouseDown={(e) => {
               e.preventDefault();
-              onKeyPress(key);
+              handleKeyPress(key);
             }}
           >
             {key}
           </button>
         ))}
+        <div className="w-[30px]"></div> {/* Offset Spacer */}
       </div>
 
-      {/* Third Row */}
-      <div className="grid grid-cols-9 gap-1 px-[5%]">
+      {/* Third Row - With Wider Enter & Delete */}
+      <div className="flex justify-center gap-1.5">
         <button
-          className={`${keyClasses} ${deleteClasses}`}
+          className={`${specialKeyClasses} bg-red-500 hover:bg-red-400 active:bg-red-600`}
           onMouseDown={(e) => {
             e.preventDefault();
+            setActiveKey("⌫");
             onDelete();
+            setTimeout(() => setActiveKey(null), 150);
           }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -62,10 +76,10 @@ const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => vo
         {rows[2].map((key) => (
           <button
             key={key}
-            className={keyClasses}
+            className={letterKeyClasses}
             onMouseDown={(e) => {
               e.preventDefault();
-              onKeyPress(key);
+              handleKeyPress(key);
             }}
           >
             {key}
@@ -73,10 +87,12 @@ const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => vo
         ))}
 
         <button
-          className={`${keyClasses} ${enterClasses}`}
+          className={`${specialKeyClasses} bg-green-500 hover:bg-green-400 active:bg-green-600`}
           onMouseDown={(e) => {
             e.preventDefault();
+            setActiveKey("↵");
             onEnter();
+            setTimeout(() => setActiveKey(null), 150);
           }}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">

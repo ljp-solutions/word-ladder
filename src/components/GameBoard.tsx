@@ -10,7 +10,7 @@ import InvalidMoveModal from './InvalidMoveModal';
 import WinningMessage from "./WinningMessage";
 import type { TodayResult } from '../types';
 import Keyboard from "./Keyboard"; // ✅ Import the custom keyboard
-
+import { isFirstVisit, markFirstVisitComplete } from '../utils/localStorage';
 
 const isLocalStorageAvailable = () => {
   try {
@@ -179,6 +179,14 @@ export const GameBoard: React.FC = () => {
       console.warn('Failed to check last played date:', error);
     }
   }, [isTestMode, storageAvailable]);
+
+  // Add this useEffect for first visit check
+  useEffect(() => {
+    if (isFirstVisit()) {
+      setShowHowToPlay(true);
+      markFirstVisitComplete();
+    }
+  }, []);
 
   const handleMove = async (newWord: string, rowIndex: number) => {
     if (!startWord || !targetWord) return;
@@ -361,7 +369,7 @@ export const GameBoard: React.FC = () => {
   
             {/* Section 4: Custom Keyboard at Bottom */}
             <div className="fixed bottom-0 w-full max-w-2xl bg-gray-900 py-5">
-              <div className="w-[min(460px,100%-32px)] mx-auto">
+              <div className="w-[min(600px,100%-22px)] mx-auto">
                 <Keyboard onKeyPress={handleCustomKeyPress} onDelete={handleDelete} onEnter={handleEnter} />
               </div>
             </div>
@@ -378,6 +386,9 @@ export const GameBoard: React.FC = () => {
                     turnsTaken={turnsTaken} 
                     onClose={() => setShowWinningMessage(false)} 
                 />
+            )}
+            {showHowToPlay && (
+              <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
             )}
 
 
