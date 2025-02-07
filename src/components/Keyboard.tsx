@@ -7,7 +7,7 @@ const Keyboard: React.FC<{ onKeyPress: (key: string) => void, onDelete: () => vo
     ["Z", "X", "C", "V", "B", "N", "M"]
   ];
 
-  const keyClasses = "w-auto h-[48px] bg-gray-700 rounded-lg text-white font-medium text-lg flex items-center justify-center hover:bg-gray-600 active:bg-gray-500 transition-colors";
+  const keyClasses = "min-w-[36px] h-[48px] bg-gray-700 rounded-lg text-white font-medium text-lg flex items-center justify-center hover:bg-gray-600 active:bg-gray-500 transition-colors";
   const deleteClasses = "bg-red-500 hover:bg-red-400 active:bg-red-600";
   const enterClasses = "bg-green-500 hover:bg-green-400 active:bg-green-600";
 

@@ -10,16 +10,16 @@ function AppContent() {
   
   return (
     <div className="min-h-screen bg-gray-900 w-full p-0">
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={200}
-          gravity={0.3}
-        />
-      )}
       <div className="max-w-2xl mx-auto flex flex-col w-full">
+        {showConfetti && (
+          <Confetti
+            width={window.innerWidth}
+            height={window.innerHeight}
+            recycle={false}
+            numberOfPieces={200}
+            gravity={0.3}
+          />
+        )}
         <Header />
         <GameBoard />
       </div>

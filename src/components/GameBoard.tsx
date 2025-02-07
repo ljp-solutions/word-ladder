@@ -360,8 +360,8 @@ export const GameBoard: React.FC = () => {
             </div>
   
             {/* Section 4: Custom Keyboard at Bottom */}
-            <div className="fixed bottom-0 w-full bg-gray-900 py-5">
-              <div className="w-full max-w-[460px] mx-auto px-3">
+            <div className="fixed bottom-0 w-full max-w-2xl bg-gray-900 py-5">
+              <div className="w-[min(460px,100%-32px)] mx-auto">
                 <Keyboard onKeyPress={handleCustomKeyPress} onDelete={handleDelete} onEnter={handleEnter} />
               </div>
             </div>
