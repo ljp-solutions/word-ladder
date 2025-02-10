@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import Confetti from "react-confetti";
-import { TrophyIcon, SparklesIcon, ChartBarIcon } from "@heroicons/react/24/solid";
+import { TrophyIcon, SparklesIcon, ChartBarIcon, GlobeAltIcon, RocketLaunchIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { useStats } from '../hooks/useStats';
 import { calculateWinRate } from '../utils/stats';
@@ -8,6 +8,9 @@ import { StatBox } from './StatBox';
 import { ShareButton } from './ShareButton';
 import { GuessDistribution } from './GuessDistribution';
 import { CountdownTimer } from './CountdownTimer';
+
+import { fetchGlobalStats } from '../utils/gameService';
+import type { GlobalStats } from '../types';
 
 interface WinningMessageProps {
   turnsTaken: number;
@@ -19,12 +22,21 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
   const [showConfetti, setShowConfetti] = useState(true);
   const { stats } = useStats();
   const [timeValues, setTimeValues] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
 
   // Stop confetti after 5 seconds
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 5000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const loadGlobalStats = async () => {
+      const data = await fetchGlobalStats();
+      setGlobalStats(data);
+    };
+    loadGlobalStats();
+  }, [])
 
   // Update countdown timer
   useEffect(() => {
@@ -54,6 +66,100 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
     }
   };
 
+  const getComparisonMessage = () => {
+    if (!globalStats?.ave_turns) return null;
+  
+    const minTurns = 1; // Minimum possible turns
+    const avgTurns = Math.round(globalStats.ave_turns);
+    const playerTurns = turnsTaken;
+    const maxTurns = Math.max(avgTurns, playerTurns) + 1; // Define max range
+  
+    // Calculate positions as percentages
+    const avgPosition = ((avgTurns - minTurns) / (maxTurns - minTurns)) * 100;
+    const playerPosition = ((playerTurns - minTurns) / (maxTurns - minTurns)) * 100;
+    const isWinner = playerTurns <= avgTurns;
+  
+    return (
+      <motion.div
+        className="mt-3 rounded-lg px-6 py-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        {/* Progress Bar Container */}
+        <div className="relative w-full h-4 bg-gray-600 rounded overflow-hidden mt-3">
+          {/* Neutral Gray Start (Animated) */}
+          <motion.div
+            className="absolute left-0 h-full bg-gray-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(avgPosition, playerPosition)}%` }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+          />
+  
+          {/* Green (Win) or Red (Lose) Section (Animated) */}
+          <motion.div
+            className={`absolute h-full ${isWinner ? "bg-green-400" : "bg-red-400"}`}
+            initial={{ width: 0 }}
+            animate={{
+              left: `${Math.min(avgPosition, playerPosition)}%`,
+              width: `${Math.abs(avgPosition - playerPosition)}%`
+            }}
+            transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+          />
+        </div>
+
+        {/* Markers + Labels */}
+        <div className="relative w-full">
+          {/* Avg Marker & Label */}
+          <div
+            className="absolute w-[1.5px] h-5 bg-gray-300 rounded-full"
+            style={{ left: `calc(${avgPosition}% - 0.75px)`, top: "-18px" }}
+          />
+          <span
+            className="absolute text-xs text-gray-300 font-semibold"
+            style={{ left: `calc(${avgPosition}% - 24px)`, top: "-38px" }}
+          >
+            Average
+          </span>
+          <span
+            className="absolute text-small text-gray-400"
+            style={{ left: `calc(${avgPosition}% - 4px)`, top: "4px" }}
+          >
+            {avgTurns}
+          </span>
+  
+          {/* Player Marker & Label */}
+          <div
+            className="absolute w-[1.5px] h-5 rounded-full"
+            style={{
+              left: `calc(${playerPosition}% - 0.75px)`,
+              top: "-18px",
+              backgroundColor: isWinner ? "#4ade80" : "#f87171",
+            }}
+          />
+          <span
+            className="absolute text-xs font-semibold"
+            style={{
+              left: `calc(${playerPosition}% - 12px)`,
+              top: "-38px",
+              color: isWinner ? "#4ade80" : "#f87171",
+            }}
+          >
+            You
+          </span>
+          <span
+            className="absolute text-small text-gray-400"
+            style={{ left: `calc(${playerPosition}% - 4px)`, top: "4px" }}
+          >
+            {playerTurns}
+          </span>
+        </div>
+      </motion.div>
+    );
+  };
+
+  
+  
   return (
     <>
       {showConfetti && <Confetti />}
@@ -82,7 +188,7 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
                 animate={{ scale: 1.2, rotate: 10 }}
                 transition={{ type: "spring", stiffness: 150, delay: 0.3 }}
               >
-                <TrophyIcon className="w-12 h-12 md:w-20 md:h-20 text-yellow-400 drop-shadow-lg" />
+                <TrophyIcon className="w-12 h-10 md:w-20 md:h-20 text-yellow-400 drop-shadow-lg" />
               </motion.div>
             </div>
 
@@ -97,16 +203,17 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
             </motion.h3>
 
             {/* Success Message */}
-            <p className="text-gray-300 text-lg md:text-2xl">
+            <p className="text-gray-300 text-l md:text-2xl">
               You solved today's puzzle in <strong className="text-green-400">{turnsTaken} turns!</strong>
             </p>
+            {getComparisonMessage()}
           </div>
 
           {/* Stats Section with Borders */}
           <div className="py-4 md:py-8 border-y border-white/10 flex-grow">
             
             {/* Stats in single row */}
-            <div className="flex justify-between gap-1 md:gap-2 max-w-2xl mx-auto px-2 md:px-4 mb-6 md:mb-8">
+            <div className="flex justify-between gap-1 md:gap-2 max-w-2xl mx-auto px-2 md:px-4 mb-4 md:mb-8">
               <StatBox 
                 label="Games" 
                 value={stats.totalGames} 
@@ -133,13 +240,13 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
             </div>
 
             {/* Guess Distribution */}
-            <div className="mt-4 md:mt-8">
-              <h4 className="text-white/80 text-sm font-medium mb-3 md:mb-4">Guess Distribution</h4>
+            <div className="mt-6 md:mt-8">
+              <h4 className="text-white/80 text-sm font-medium mb-1 md:mb-4">Guess Distribution</h4>
               <GuessDistribution distribution={stats.turnDistribution} />
               
               {/* Stats Button - Moved below distribution */}
               <motion.button 
-                className="mt-6 px-4 py-2 bg-gray-800 hover:bg-gray-600 text-white rounded-lg 
+                className="mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-600 text-white rounded-lg 
                           text-sm font-medium transition-all duration-200
                           flex items-center justify-center gap-2 mx-auto"
                 onClick={onShowStats}

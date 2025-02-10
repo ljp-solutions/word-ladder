@@ -18,6 +18,7 @@ export interface TodayResult {
 export interface GlobalStats {
   total_games: number;
   total_wins: number;
+  ave_turns: number;
   longest_streak: number;
   daily_games: number;
   daily_wins: number;

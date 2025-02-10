@@ -28,10 +28,10 @@ export const StatBox = ({
         </div>
       ) : (
         <>
-          <div className={`text-2xl font-bold ${highlightClasses[highlight]}`}>
+          <div className={`text-xl font-bold ${highlightClasses[highlight]}`}>
             {value}
           </div>
-          <div className="text-sm text-white/60 mt-1 font-medium">{label}</div>
+          <div className="text-xs text-white/60 mt-1 font-medium">{label}</div>
         </>
       )}
     </div>

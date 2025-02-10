@@ -27,7 +27,7 @@ const TimeUnit: React.FC<{ value: number; label: string }> = ({ value, label }) 
   return (
     <div className="flex flex-col items-center">
       <motion.div 
-        className="bg-gray-800 rounded-lg px-3 py-2 min-w-[3rem] text-center"
+        className="bg-gray-800 rounded-lg px-2 py-1 min-w-[2rem] text-center"
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, delay: 0.6 }}

@@ -84,6 +84,7 @@ export const fetchGlobalStats = async (): Promise<GlobalStats | null> => {
     return {
       total_games: Number(data.total_games),
       total_wins: Number(data.total_wins),
+      ave_turns: Number(data.ave_turns),
       longest_streak: Number(data.longest_streak),
       daily_games: Number(data.daily_games),
       daily_wins: Number(data.daily_wins),

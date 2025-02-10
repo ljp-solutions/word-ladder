@@ -111,12 +111,8 @@ export const StatsModal = ({ onClose }: StatsModalProps) => {
               loading={isLoading}
             />
             <StatBox 
-              label="Today's Win Rate" 
-              value={`${calculateWinRate(
-                globalStats?.daily_wins ?? 0,
-                globalStats?.daily_games ?? 0
-              )}%`}
-              highlight="purple"
+              label="Average Turns" 
+              value={globalStats?.ave_turns ?? 0}
               loading={isLoading}
             />
           </div>
