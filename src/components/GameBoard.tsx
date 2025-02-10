@@ -46,6 +46,16 @@ const InputRow: React.FC<{
   );
 };
 
+const getInvalidMoveMessage = (reason?: string) => {
+  switch (reason) {
+    case 'too_many_changes':
+      return "You can only change one letter or swap two letters!";
+    case 'not_a_word':
+      return "Not a valid word!";
+    default:
+      return "Invalid move!";
+  }
+};
 
 export const GameBoard: React.FC = () => {
   // Add new state to track if game was just completed
@@ -211,12 +221,21 @@ export const GameBoard: React.FC = () => {
     }
   }, []);
 
+  const clearCurrentRow = () => {
+    setUserInputs(prev => {
+      const newInputs = [...prev];
+      newInputs[newInputs.length - 1] = ['', '', '', ''];
+      return newInputs;
+    });
+  };
+
   const handleMove = async (newWord: string, rowIndex: number) => {
     if (!startWord || !targetWord || gameWon) return;
 
     const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
+    const validationResult = await isValidMove(lastWord, newWord);
 
-    if (await isValidMove(lastWord, newWord)) {
+    if (validationResult.isValid) {
         setValidMoves(prev => [...prev, rowIndex]);
         const currentTurn = rowIndex + 1;
         setTurnsTaken(currentTurn);
@@ -266,11 +285,29 @@ export const GameBoard: React.FC = () => {
             setUserInputs(prev => [...prev, ['', '', '', '']]);
         }, totalAnimationTime);
     } else {
-        // ...existing invalid move logic...
+        console.warn("❌ Invalid move detected:", validationResult.reason);
+        setInvalidMoveMessage(getInvalidMoveMessage(validationResult.reason));
+        
+        // Clear the current row
+        clearCurrentRow();
+        
+        // Set a timeout to hide the message and ensure focus is set after animation
+        setTimeout(() => {
+            setInvalidMoveMessage(null);
+        }, 3000);
     }
   };
 
-
+  // Add effect to handle focus after row clear
+  useEffect(() => {
+    if (userInputs[userInputs.length - 1].every(letter => letter === '')) {
+      // Focus the first input of the current row
+      const currentRowFirstInput = inputRefs.current[(userInputs.length - 1) * 4];
+      if (currentRowFirstInput) {
+        currentRowFirstInput.focus();
+      }
+    }
+  }, [userInputs]);
 
   useEffect(() => {
     if (userInputs.length > 1) {

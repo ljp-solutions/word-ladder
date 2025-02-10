@@ -57,23 +57,33 @@ export async function isValidWord(word: string): Promise<boolean> {
     return !!data; // Returns true if a word exists
 }
 
-// Validate the player's move
-export async function isValidMove(currentWord: string, newWord: string): Promise<boolean> {
-    // First, check if the word follows allowed transformations
-    const isTransformationValid = isOneLetterChange(currentWord, newWord) || isTwoLetterSwap(currentWord, newWord);
+export type ValidationResult = {
+  isValid: boolean;
+  reason?: 'too_many_changes' | 'not_a_word' | 'invalid_swap';
+};
 
-    if (!isTransformationValid) {
-        console.log(`Invalid transformation: ${currentWord} → ${newWord}`);
-        return false; // Reject if the move is not allowed
+// Update the main validation function
+export async function isValidMove(currentWord: string, newWord: string): Promise<ValidationResult> {
+    // Check basic transformations first
+    const isOneLetterValid = isOneLetterChange(currentWord, newWord);
+    const isTwoLetterValid = isTwoLetterSwap(currentWord, newWord);
+    
+    if (!isOneLetterValid && !isTwoLetterValid) {
+        return {
+            isValid: false,
+            reason: 'too_many_changes'
+        };
     }
 
-    // Now, check if the new word exists in the Supabase dictionary
+    // Now check if the word exists
     const wordExists = await isValidWord(newWord);
     if (!wordExists) {
-        console.log(`Word does not exist in Supabase: ${newWord}`);
-        return false;
+        return {
+            isValid: false,
+            reason: 'not_a_word'
+        };
     }
 
-    return true; // Move is valid and word exists
+    return { isValid: true };
 }
 
