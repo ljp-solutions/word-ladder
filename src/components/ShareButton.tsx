@@ -6,7 +6,7 @@ interface ShareButtonProps {
 }
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ won, turns }) => {
-  const shareUrl = 'https://swapple.vercel.app/';
+  const shareUrl = 'https://word-ladder-omega.vercel.app/';
   const emoji = won ? '✅' : '❌';
   const turnsText = turns ? ` in ${turns} ${turns === 1 ? 'turn' : 'turns'}` : '';
   
@@ -47,9 +47,9 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ won, turns }) => {
     <button
       onClick={handleShare}
       className="px-6 py-2.5 text-sm font-medium
-        bg-white/10 text-white/90
+        bg-green-700 text-white/90
         rounded-lg transition-all duration-300
-        hover:bg-gray-700 hover:scale-105 hover:shadow-lg
+        hover:bg-green-700 hover:scale-105 hover:shadow-lg
         active:scale-95 backdrop-blur-sm
         flex items-center justify-center gap-2"
     >

@@ -11,6 +11,7 @@ import WinningMessage from "./WinningMessage";
 import type { TodayResult } from '../types';
 import Keyboard from "./Keyboard"; // ✅ Import the custom keyboard
 import { isFirstVisit, markFirstVisitComplete } from '../utils/localStorage';
+import { StatsModal } from './StatsModal';
 
 const isLocalStorageAvailable = () => {
   try {
@@ -76,8 +77,14 @@ export const GameBoard: React.FC = () => {
   const [pendingFocus, setPendingFocus] = useState<number | null>(null);
   const [showWinningMessage, setShowWinningMessage] = useState(false);
   const [turnsTaken, setTurnsTaken] = useState(0);
+  const [gameWon, setGameWon] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const handleCustomKeyPress = (key: string) => {
+    if (gameWon) {
+      setShowWinningMessage(true);
+      return;
+    }
     setUserInputs((prevInputs) => {
       // Create a deep copy of the array to avoid direct mutation
       const newInputs = prevInputs.map(row => [...row]); 
@@ -94,6 +101,10 @@ export const GameBoard: React.FC = () => {
   };
   
   const handleDelete = () => {
+    if (gameWon) {
+      setShowWinningMessage(true); // Show winning message again
+      return;
+    }
     setUserInputs((prevInputs) => {
       const newInputs = prevInputs.map(row => [...row]); // Create a deep copy to avoid modifying state directly
       const activeRow = newInputs[newInputs.length - 1];
@@ -114,6 +125,10 @@ export const GameBoard: React.FC = () => {
   
   
   const handleEnter = () => {
+    if (gameWon) {
+      setShowWinningMessage(true); // Show winning message again
+      return;
+    }
     const currentWord = userInputs[userInputs.length - 1].join("");
     if (currentWord.length === 4) {
       handleMove(currentWord, userInputs.length - 1);
@@ -172,8 +187,14 @@ export const GameBoard: React.FC = () => {
       const savedResult = localStorage.getItem("todayResult");
       
       if (lastPlayedDate === today && savedResult) {
+        const result = JSON.parse(savedResult);
         setHasPlayedToday(true);
-        setTodayResult(JSON.parse(savedResult));
+        setTodayResult(result);
+        if (result.won) {
+          setGameWon(true);
+          setTurnsTaken(result.turns);
+          setShowWinningMessage(true);
+        }
       }
     } catch (error) {
       console.warn('Failed to check last played date:', error);
@@ -189,7 +210,7 @@ export const GameBoard: React.FC = () => {
   }, []);
 
   const handleMove = async (newWord: string, rowIndex: number) => {
-    if (!startWord || !targetWord) return;
+    if (!startWord || !targetWord || gameWon) return;
 
     const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
 
@@ -203,6 +224,7 @@ export const GameBoard: React.FC = () => {
 
         if (won) {
             console.log("🏆 Winning condition met! Showing message.");
+            setGameWon(true); // Set game as won
             setGameState('won');
             setShowWinningMessage(true); // ✅ Ensure the message is shown
             setShowConfetti(true);
@@ -304,6 +326,21 @@ export const GameBoard: React.FC = () => {
     setUserInputs(newInputs);
   };
 
+  const handleWinningMessageClose = () => {
+    setShowWinningMessage(false);
+  };
+
+  const handleGameAreaClick = () => {
+    if (gameWon) {
+      setShowWinningMessage(true);
+    }
+  };
+
+  const handleShowStats = () => {
+    setShowWinningMessage(false);
+    setShowStats(true);
+  };
+
   // Update the render logic to consider justCompleted
   if (isLoading) return <div></div>;
   if (error) return <div>{error}</div>;
@@ -312,140 +349,100 @@ export const GameBoard: React.FC = () => {
   return (
     <motion.div className="flex flex-col w-full min-h-[100dvh]">
       <div className="flex flex-col h-full">
-        {(!hasPlayedToday || isTestMode || justCompleted) ? (
-          <div className="grid grid-rows-[auto_1fr_auto] h-full gap-3 pt-4">
-            
-            {/* Section 1: Start Word - Fixed at Top */}
-            <div className="flex flex-col items-center px-4">
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-2">
-                <div className="text-gray-400 font-medium text-sm mb-2 text-center">START</div>
-                <div className="flex justify-center gap-3">
-                  {startWord?.split('').map((letter, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-800 font-light text-white p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
-                    >
-                      {letter}
-                    </div>
-                  ))}
-                </div>
+        <div 
+          className="grid grid-rows-[auto_1fr_auto] h-full gap-3 pt-4"
+          onClick={handleGameAreaClick}
+        >
+          {/* Section 1: Start Word - Fixed at Top */}
+          <div className="flex flex-col items-center px-4">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/30 rounded-xl p-2">
+              <div className="text-gray-400 font-medium text-sm mb-2 text-center">START</div>
+              <div className="flex justify-center gap-3">
+                {startWord?.split('').map((letter, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-800 font-light text-white p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
+                  >
+                    {letter}
+                  </div>
+                ))}
               </div>
             </div>
-  
-            {/* Section 2: Input Area - Scrollable middle section */}
-            <div className="flex flex-col px-4">
-              <div ref={containerRef} className="h-[198px] relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                <div className="flex flex-col space-y-1">
-                  {userInputs.map((userInput, idx) => (
-                    <div key={`input-${idx}`} className="input-row">
-                      <InputRow
-                        rowIndex={idx}
-                        userInput={userInput}
-                        isActive={idx === userInputs.length - 1}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-  
-            {/* Section 3: Target Word - Fixed Above the Keyboard */}
-            <div className="flex flex-col items-center px-4 pb-2">
-              <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-2">
-                <div className="text-gray-400 font-medium text-sm mb-2 text-center">TARGET</div>
-                <div className="flex justify-center gap-3">
-                  {targetWord?.split('').map((letter, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-700 font-light text-gray-200 p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
-                    >
-                      {letter}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-  
-            {/* Section 4: Custom Keyboard at Bottom */}
-            <div className="fixed bottom-0 w-full max-w-2xl bg-gray-900 py-5">
-              <div className="w-[min(600px,100%-22px)] mx-auto">
-                <Keyboard onKeyPress={handleCustomKeyPress} onDelete={handleDelete} onEnter={handleEnter} />
-              </div>
-            </div>
-
-
-            {invalidMoveMessage && (
-              <InvalidMoveModal 
-                message={invalidMoveMessage}
-                onClose={() => setInvalidMoveMessage(null)}
-              />
-            )}
-            {showWinningMessage && (
-                <WinningMessage 
-                    turnsTaken={turnsTaken} 
-                    onClose={() => setShowWinningMessage(false)} 
-                />
-            )}
-            {showHowToPlay && (
-              <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
-            )}
-
-
           </div>
 
-          
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-full max-w-sm mx-auto bg-gray-800/50 rounded-xl p-6
-                      backdrop-blur-md border border-gray-700/30
-                      flex flex-col items-center gap-4 mt-6"
-          >
-            <div className="flex items-center gap-3">
-              <div>
-                <h3 className="text-gray-100 font-medium text-lg font-sans">
-                  You've already played today
-                </h3>
-                <p className="text-gray-400 text-sm mt-0.5 font-sans">
-                  Come back tomorrow for a new challenge!
-                </p>
+          {/* Section 2: Input Area - Scrollable middle section */}
+          <div className="flex flex-col px-4">
+            <div ref={containerRef} className="h-[198px] relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+              <div className="flex flex-col space-y-1">
+                {userInputs.map((userInput, idx) => (
+                  <div key={`input-${idx}`} className="input-row">
+                    <InputRow
+                      rowIndex={idx}
+                      userInput={userInput}
+                      isActive={idx === userInputs.length - 1}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
-            {todayResult && (
-              <div className="w-full flex flex-col items-center gap-3 mt-2">
-                <div className={`
-                  w-full px-4 py-3 rounded-lg text-center
-                  ${todayResult.won 
-                    ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-                    : 'bg-red-500/20 text-red-300 border-red-500/30'
-                  } border
-                `}>
-                  <span className="font-medium font-sans">
-                    {todayResult.won 
-                      ? `Success! You reached ${todayResult.word} in ${todayResult.turns} ${todayResult.turns === 1 ? 'turn' : 'turns'}` 
-                      : `You chose ${todayResult.word} - Wrong!`}
-                  </span>
-                </div>
-                {todayResult.won && (
-                  <div className="text-gray-300 text-sm font-sans">
-                    Current streak: {todayResult.streak}
+          </div>
+
+
+          {/* Section 3: Target Word - Fixed Above the Keyboard */}
+          <div className="flex flex-col items-center px-4 pb-2">
+            <div className="bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-xl p-2">
+              <div className="text-gray-400 font-medium text-sm mb-2 text-center">TARGET</div>
+              <div className="flex justify-center gap-3">
+                {targetWord?.split('').map((letter, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-700 font-light text-gray-200 p-3 rounded-lg text-center w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl flex items-center justify-center"
+                  >
+                    {letter}
                   </div>
-                )}
-                <div className="text-gray-400 text-sm font-sans">
-                  {timeLeft}
-                </div>
+                ))}
               </div>
-            )}
-            <div className="w-full flex justify-center mt-4">
-              <ShareButton 
-                won={todayResult?.won} 
-                turns={todayResult?.turns}
+            </div>
+          </div>
+
+
+          {/* Section 4: Custom Keyboard at Bottom */}
+          <div className="fixed bottom-0 w-full max-w-2xl bg-gray-900 py-5">
+            <div className="w-[min(600px,100%-22px)] mx-auto">
+              <Keyboard 
+                onKeyPress={handleCustomKeyPress} 
+                onDelete={handleDelete} 
+                onEnter={handleEnter}
+                disabled={gameWon} // Add disabled prop to keyboard
               />
             </div>
-          </motion.div>
-        )}
+          </div>
+
+
+          {invalidMoveMessage && (
+            <InvalidMoveModal 
+              message={invalidMoveMessage}
+              onClose={() => setInvalidMoveMessage(null)}
+            />
+          )}
+          {showWinningMessage && (
+            <div className="fixed inset-0 z-50" style={{ pointerEvents: 'auto' }}>
+              <WinningMessage 
+                turnsTaken={turnsTaken} 
+                onClose={handleWinningMessageClose}
+                onShowStats={handleShowStats}
+              />
+            </div>
+          )}
+          {showStats && (
+            <StatsModal onClose={() => setShowStats(false)} />
+          )}
+          {showHowToPlay && (
+            <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
+          )}
+
+
+        </div>
       </div>
     </motion.div>
   );
