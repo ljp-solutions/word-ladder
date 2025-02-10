@@ -8,6 +8,14 @@ const defaultStats: GameStats = {
   bestStreak: 0,
   totalGames: 0,
   totalWins: 0,
+  turnDistribution: {
+    '3': 0,
+    '4': 0,
+    '5': 0,
+    '6': 0,
+    '7': 0,
+    '8+': 0
+  }
 };
 
 export const loadStats = (): GameStats => {
@@ -21,6 +29,14 @@ export const loadStats = (): GameStats => {
       bestStreak: Number(parsed.bestStreak) || 0,
       totalGames: Number(parsed.totalGames) || 0,
       totalWins: Number(parsed.totalWins) || 0,
+      turnDistribution: {
+        '3': Number(parsed.turnDistribution?.['3']) || 0,
+        '4': Number(parsed.turnDistribution?.['4']) || 0,
+        '5': Number(parsed.turnDistribution?.['5']) || 0,
+        '6': Number(parsed.turnDistribution?.['6']) || 0,
+        '7': Number(parsed.turnDistribution?.['7']) || 0,
+        '8+': Number(parsed.turnDistribution?.['8+']) || 0
+      }
     };
   } catch (error) {
     console.warn('Failed to load stats from localStorage:', error);

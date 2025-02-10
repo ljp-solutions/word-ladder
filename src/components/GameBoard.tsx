@@ -208,7 +208,7 @@ export const GameBoard: React.FC = () => {
             setShowConfetti(true);
             setJustCompleted(true);
 
-            const newStreak = updateStats(true);
+            const newStreak = updateStats(true, currentTurn); // Pass the actual turn count
             try {
                 await saveGameResult(true, newStreak, currentTurn);
 

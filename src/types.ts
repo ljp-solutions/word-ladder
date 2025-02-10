@@ -1,8 +1,11 @@
+export type TurnCategory = '3' | '4' | '5' | '6' | '7' | '8+';
+
 export interface GameStats {
   currentStreak: number;
   bestStreak: number;
   totalGames: number;
   totalWins: number;
+  turnDistribution: Record<TurnCategory, number>;
 }
 
 export interface TodayResult {

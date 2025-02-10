@@ -1,52 +1,45 @@
-import { useState, useEffect } from 'react';
-import type { GameStats } from '../types';
-
-const STORAGE_KEY = 'swapple_gameStats';
+import { useState } from 'react';
+import { GameStats, TurnCategory } from '../types';
+import { loadStats as loadStoredStats, saveStats } from '../utils/localStorage';
 
 const defaultStats: GameStats = {
   currentStreak: 0,
   bestStreak: 0,
   totalGames: 0,
   totalWins: 0,
-};
-
-const loadStats = (): GameStats => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultStats;
-
-    const parsed = JSON.parse(saved);
-    return {
-      currentStreak: Number(parsed.currentStreak) || 0,
-      bestStreak: Number(parsed.bestStreak) || 0,
-      totalGames: Number(parsed.totalGames) || 0,
-      totalWins: Number(parsed.totalWins) || 0,
-    };
-  } catch (error) {
-    console.warn('Failed to load stats from localStorage:', error);
-    return defaultStats;
-  }
-};
-
-const saveStats = (stats: GameStats): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-  } catch (error) {
-    console.warn('Failed to save stats to localStorage:', error);
+  turnDistribution: {
+    '3': 0,
+    '4': 0,
+    '5': 0,
+    '6': 0,
+    '7': 0,
+    '8+': 0
   }
 };
 
 export const useStats = () => {
-  const [stats, setStats] = useState<GameStats>(loadStats);
+  const [stats, setStats] = useState<GameStats>(loadStoredStats);
 
-  const updateStats = (won: boolean): number => {
+  const updateStats = (won: boolean, turns: number): number => {
+    console.log('Updating stats with turns:', turns); // Debug log
+
+    // Simpler turn category determination
+    const turnCategory = turns >= 8 ? '8+' : String(turns) as TurnCategory;
+    
+    console.log('Determined turn category:', turnCategory); // Debug log
+    
     const newStats = {
       currentStreak: won ? stats.currentStreak + 1 : 0,
       bestStreak: won ? Math.max(stats.bestStreak, stats.currentStreak + 1) : stats.bestStreak,
       totalGames: stats.totalGames + 1,
       totalWins: won ? stats.totalWins + 1 : stats.totalWins,
+      turnDistribution: {
+        ...stats.turnDistribution,
+        [turnCategory]: won ? stats.turnDistribution[turnCategory] + 1 : stats.turnDistribution[turnCategory]
+      }
     };
 
+    console.log('New stats:', newStats); // Debug log
     setStats(newStats);
     saveStats(newStats);
     return newStats.currentStreak;
