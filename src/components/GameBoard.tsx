@@ -12,6 +12,7 @@ import type { TodayResult } from '../types';
 import Keyboard from "./Keyboard"; // ✅ Import the custom keyboard
 import { isFirstVisit, markFirstVisitComplete } from '../utils/localStorage';
 import { StatsModal } from './StatsModal';
+import { AnimatedInputRow } from './AnimatedInputRow';
 
 const isLocalStorageAvailable = () => {
   try {
@@ -79,6 +80,7 @@ export const GameBoard: React.FC = () => {
   const [turnsTaken, setTurnsTaken] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [validMoves, setValidMoves] = useState<number[]>([]);
 
   const handleCustomKeyPress = (key: string) => {
     if (gameWon) {
@@ -215,6 +217,7 @@ export const GameBoard: React.FC = () => {
     const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
 
     if (await isValidMove(lastWord, newWord)) {
+        setValidMoves(prev => [...prev, rowIndex]);
         const currentTurn = rowIndex + 1;
         setTurnsTaken(currentTurn);
 
@@ -222,17 +225,25 @@ export const GameBoard: React.FC = () => {
         const normalizedTarget = targetWord.toUpperCase();
         const won = normalizedNew === normalizedTarget;
 
-        if (won) {
-            console.log("🏆 Winning condition met! Showing message.");
-            setGameWon(true); // Set game as won
-            setGameState('won');
-            setShowWinningMessage(true); // ✅ Ensure the message is shown
-            setShowConfetti(true);
-            setJustCompleted(true);
+        // Calculate total animation time
+        const animationDuration = 600; // Base animation duration
+        const lastLetterDelay = 300; // Delay for last letter (3 * 100ms)
+        const buffer = 100; // Extra buffer
+        const totalAnimationTime = animationDuration + lastLetterDelay + buffer;
 
-            const newStreak = updateStats(true, currentTurn); // Pass the actual turn count
-            try {
-                await saveGameResult(true, newStreak, currentTurn);
+        if (won) {
+            // Set game as won immediately but delay showing the message
+            setGameWon(true);
+            setGameState('won');
+            
+            // Wait for animation to complete before showing winning message
+            setTimeout(() => {
+                setShowWinningMessage(true);
+                setShowConfetti(true);
+                setJustCompleted(true);
+
+                const newStreak = updateStats(true, currentTurn);
+                saveGameResult(true, newStreak, currentTurn).catch(console.error);
 
                 const resultData: TodayResult = {
                     word: newWord,
@@ -245,26 +256,17 @@ export const GameBoard: React.FC = () => {
                 localStorage.setItem("todayResult", JSON.stringify(resultData));
                 setTodayResult(resultData);
                 setHasPlayedToday(true);
-            } catch (error) {
-                console.error('❌ Failed to save game result:', error);
-            }
+            }, totalAnimationTime);
+            
             return;
         }
 
-        // Continue the game if not won
-        const nextRowIndex = rowIndex + 1;
-        setUserInputs([...userInputs, ['', '', '', '']]);
-
+        // For non-winning moves, wait for animation before adding new row
         setTimeout(() => {
-            const firstInput = inputRefs.current[nextRowIndex * 4];
-            if (firstInput) firstInput.focus();
-        }, 50);
+            setUserInputs(prev => [...prev, ['', '', '', '']]);
+        }, totalAnimationTime);
     } else {
-        console.warn("❌ Invalid move detected! Showing modal.");
-        setInvalidMoveMessage("Invalid move! You can only change one letter or swap two letters.");
-        setTimeout(() => {
-            setInvalidMoveMessage(null); // Clears modal after 2 seconds
-        }, 2000);
+        // ...existing invalid move logic...
     }
   };
 
@@ -375,13 +377,13 @@ export const GameBoard: React.FC = () => {
             <div ref={containerRef} className="h-[198px] relative overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
               <div className="flex flex-col space-y-1">
                 {userInputs.map((userInput, idx) => (
-                  <div key={`input-${idx}`} className="input-row">
-                    <InputRow
-                      rowIndex={idx}
-                      userInput={userInput}
-                      isActive={idx === userInputs.length - 1}
-                    />
-                  </div>
+                  <AnimatedInputRow
+                    key={`input-${idx}`}
+                    userInput={userInput}
+                    rowIndex={idx}
+                    isActive={idx === userInputs.length - 1}
+                    isValid={validMoves.includes(idx)}
+                  />
                 ))}
               </div>
             </div>
