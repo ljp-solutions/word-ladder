@@ -70,7 +70,7 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
     if (!globalStats?.ave_turns) return null;
   
     const minTurns = 1; // Minimum possible turns
-    const avgTurns = Math.round(globalStats.ave_turns);
+    const avgTurns = globalStats.ave_turns;
     const playerTurns = turnsTaken;
     const maxTurns = Math.max(avgTurns, playerTurns) + 1; // Define max range
   
@@ -123,7 +123,7 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
           </span>
           <span
             className="absolute text-small text-gray-400"
-            style={{ left: `calc(${avgPosition}% - 4px)`, top: "4px" }}
+            style={{ left: `calc(${avgPosition}% - 11px)`, top: "4px" }}
           >
             {avgTurns}
           </span>
@@ -241,7 +241,7 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
 
             {/* Guess Distribution */}
             <div className="mt-6 md:mt-8">
-              <h4 className="text-white/80 text-sm font-medium mb-1 md:mb-4">Guess Distribution</h4>
+              <h4 className="text-white/80 text-sm font-medium mb-1 md:mb-4">Moves Distribution</h4>
               <GuessDistribution distribution={stats.turnDistribution} />
               
               {/* Stats Button - Moved below distribution */}
