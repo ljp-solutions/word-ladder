@@ -8,9 +8,9 @@ interface ShareButtonProps {
 export const ShareButton: React.FC<ShareButtonProps> = ({ won, turns }) => {
   const shareUrl = 'https://word-ladder-omega.vercel.app/';
   const emoji = won ? '✅' : '❌';
-  const turnsText = turns ? ` in ${turns} ${turns === 1 ? 'turn' : 'turns'}` : '';
+  const turnsText = turns ? `${turns} ${turns === 1 ? 'turn' : 'turns'}` : '';
   
-  const displayText = `🎯 SWAPPLE\n\n${emoji} ${won ? `Got it${turnsText}!` : "Didn't get today's word"}\n\n🎲 Change or swap letters to reach the target word.\n\nPlay at ${shareUrl}`;
+  const displayText = `🎯 SWAPPLE\n\n${emoji} ${won ? `I took ${turnsText}!` : "Didn't get today's word"}\n\n🎲 Change or swap letters to reach the target word.\n\nLet's see if you can beat me!`;
 
   const handleShare = async () => {
     const shareData = {
