@@ -71,7 +71,7 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
   
     const minTurns = 3;
     const avgTurns = globalStats.ave_turns;
-    const playerTurns = 5//turnsTaken-1;
+    const playerTurns = turnsTaken;
     
     // Calculate the difference and use it to determine scale padding
     const diff = Math.abs(avgTurns - playerTurns);
