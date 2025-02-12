@@ -69,14 +69,20 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
   const getComparisonMessage = () => {
     if (!globalStats?.ave_turns) return null;
   
-    const minTurns = 1; // Minimum possible turns
+    const minTurns = 3;
     const avgTurns = globalStats.ave_turns;
-    const playerTurns = turnsTaken;
-    const maxTurns = Math.max(avgTurns, playerTurns) + 1; // Define max range
-  
-    // Calculate positions as percentages
-    const avgPosition = ((avgTurns - minTurns) / (maxTurns - minTurns)) * 100;
-    const playerPosition = ((playerTurns - minTurns) / (maxTurns - minTurns)) * 100;
+    const playerTurns = 5//turnsTaken-1;
+    
+    // Calculate the difference and use it to determine scale padding
+    const diff = Math.abs(avgTurns - playerTurns);
+    const minSpacing = diff < 1 ? 1 : 1; // Add more padding when scores are very close
+    
+    const maxTurns = Math.max(avgTurns, playerTurns) + minSpacing;
+    const scalePadding = diff < 1 ? 0.25 : 0.5;
+    
+    // Adjust scale to account for difference
+    const avgPosition = ((avgTurns - minTurns) / (maxTurns - minTurns )) * 100;
+    const playerPosition = ((playerTurns - minTurns) / (maxTurns - minTurns + (3 * scalePadding))) * 100;
     const isWinner = playerTurns <= avgTurns;
   
     return (
