@@ -73,18 +73,15 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
     const avgTurns = globalStats.ave_turns;
     const playerTurns = turnsTaken;
     
-    // Calculate the difference and use it to determine scale padding
-    const diff = Math.abs(avgTurns - playerTurns);
-    const minSpacing = diff < 1 ? 1 : 1; // Add more padding when scores are very close
+    // Check if scores match (within 0.1 to handle floating point)
+    const isExactMatch = Math.abs(avgTurns - playerTurns) < 0.3;
     
-    const maxTurns = Math.max(avgTurns, playerTurns) + minSpacing;
-    const scalePadding = diff < 1 ? 0.25 : 0.5;
-    
-    // Adjust scale to account for difference
-    const avgPosition = ((avgTurns - minTurns) / (maxTurns - minTurns )) * 100;
-    const playerPosition = ((playerTurns - minTurns) / (maxTurns - minTurns + (3 * scalePadding))) * 100;
+    // Calculate position using min and max turns
+    const maxTurns = Math.max(avgTurns, playerTurns) + 1;
+    const position = ((playerTurns - minTurns) / (maxTurns - minTurns)) * 100;
+    const avgPosition = ((avgTurns - minTurns) / (maxTurns - minTurns)) * 100;
     const isWinner = playerTurns <= avgTurns;
-  
+
     return (
       <motion.div
         className="mt-3 rounded-lg px-6 py-4"
@@ -94,71 +91,107 @@ const WinningMessage: React.FC<WinningMessageProps> = ({ turnsTaken, onClose, on
       >
         {/* Progress Bar Container */}
         <div className="relative w-full h-4 bg-gray-600 rounded overflow-hidden mt-3">
-          {/* Neutral Gray Start (Animated) */}
-          <motion.div
-            className="absolute left-0 h-full bg-gray-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(avgPosition, playerPosition)}%` }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
-          />
-  
-          {/* Green (Win) or Red (Lose) Section (Animated) */}
-          <motion.div
-            className={`absolute h-full ${isWinner ? "bg-green-400" : "bg-red-400"}`}
-            initial={{ width: 0 }}
-            animate={{
-              left: `${Math.min(avgPosition, playerPosition)}%`,
-              width: `${Math.abs(avgPosition - playerPosition)}%`
-            }}
-            transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
-          />
+          {isExactMatch ? (
+            // Single yellow marker for exact match
+            <motion.div
+              className="absolute h-full bg-yellow-400/80"
+              initial={{ width: 0 }}
+              animate={{ 
+                width: '4px',
+                left: `calc(${position}% - 2px)`
+              }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+            />
+          ) : (
+            // Standard progress bar for different scores
+            <>
+              <motion.div
+                className="absolute left-0 h-full bg-gray-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(avgPosition, position)}%` }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+              />
+              <motion.div
+                className={`absolute h-full ${isWinner ? "bg-green-400" : "bg-red-400"}`}
+                initial={{ width: 0 }}
+                animate={{
+                  left: `${Math.min(avgPosition, position)}%`,
+                  width: `${Math.abs(avgPosition - position)}%`
+                }}
+                transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
+              />
+            </>
+          )}
         </div>
 
         {/* Markers + Labels */}
         <div className="relative w-full">
-          {/* Avg Marker & Label */}
-          <div
-            className="absolute w-[1.5px] h-5 bg-gray-300 rounded-full"
-            style={{ left: `calc(${avgPosition}% - 0.75px)`, top: "-18px" }}
-          />
-          <span
-            className="absolute text-xs text-gray-300 font-semibold"
-            style={{ left: `calc(${avgPosition}% - 24px)`, top: "-38px" }}
-          >
-            Average
-          </span>
-          <span
-            className="absolute text-small text-gray-400"
-            style={{ left: `calc(${avgPosition}% - 11px)`, top: "4px" }}
-          >
-            {avgTurns}
-          </span>
-  
-          {/* Player Marker & Label */}
-          <div
-            className="absolute w-[1.5px] h-5 rounded-full"
-            style={{
-              left: `calc(${playerPosition}% - 0.75px)`,
-              top: "-18px",
-              backgroundColor: isWinner ? "#4ade80" : "#f87171",
-            }}
-          />
-          <span
-            className="absolute text-xs font-semibold"
-            style={{
-              left: `calc(${playerPosition}% - 12px)`,
-              top: "-38px",
-              color: isWinner ? "#4ade80" : "#f87171",
-            }}
-          >
-            You
-          </span>
-          <span
-            className="absolute text-small text-gray-400"
-            style={{ left: `calc(${playerPosition}% - 4px)`, top: "4px" }}
-          >
-            {playerTurns}
-          </span>
+          {isExactMatch ? (
+            // Single marker for matching scores
+            <>
+              <div
+                className="absolute w-[1.5px] h-5 bg-yellow-400 rounded-full"
+                style={{ left: `calc(${position}% - 0.75px)`, top: "-18px" }}
+              />
+              <span
+                className="absolute text-xs text-yellow-400 font-semibold whitespace-nowrap"
+                style={{ left: `calc(${position}% - 60px)`, top: "-38px" }}
+              >
+                You matched average!
+              </span>
+              <span
+                className="absolute text-sm text-yellow-400"
+                style={{ left: `calc(${position}% - 4px)`, top: "4px" }}
+              >
+                {playerTurns}
+              </span>
+            </>
+          ) : (
+            // Separate markers for different scores
+            <>
+              <div
+                className="absolute w-[1.5px] h-5 bg-gray-300 rounded-full"
+                style={{ left: `calc(${avgPosition}% - 0.75px)`, top: "-18px" }}
+              />
+              <span
+                className="absolute text-xs text-gray-300 font-semibold whitespace-nowrap"
+                style={{ left: `calc(${avgPosition}% - 24px)`, top: "-38px" }}
+              >
+                Average
+              </span>
+              <span
+                className="absolute text-sm text-gray-400"
+                style={{ left: `calc(${avgPosition}% - 11px)`, top: "4px" }}
+              >
+                {avgTurns.toFixed(1)}
+              </span>
+
+              <div
+                className="absolute w-[1.5px] h-5 rounded-full"
+                style={{
+                  left: `calc(${position}% - 0.75px)`,
+                  top: "-18px",
+                  backgroundColor: isWinner ? "#4ade80" : "#f87171",
+                }}
+              />
+              <span
+                className="absolute text-xs font-semibold whitespace-nowrap"
+                style={{
+                  left: `calc(${position}% - 12px)`,
+                  top: "-38px",
+                  color: isWinner ? "#4ade80" : "#f87171",
+                }}
+              >
+                You
+              </span>
+              <span
+                className="absolute text-sm text-gray-400"
+                style={{ left: `calc(${position}% - 4px)`, top: "4px" }}
+              >
+                {playerTurns}
+              </span>
+            </>
+          )}
         </div>
       </motion.div>
     );
