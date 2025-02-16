@@ -40,27 +40,25 @@ export const ShareButton: React.FC = () => {
       result.turns
     );
 
-    const shareData = {
-      text: message,
-      title: 'SWAPPLE - Daily Word Game',
-      url: 'https://word-ladder-omega.vercel.app/'
-    };
-    
     try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(message);
-        alert('Copied to clipboard!');
+      // Try native sharing first
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+          await navigator.share({
+            text: message
+          });
+          return;
+        } catch (err) {
+          console.log('Native share failed, falling back to clipboard', err);
+        }
       }
+
+      // Fallback to clipboard
+      await navigator.clipboard.writeText(message);
+      alert('Copied to clipboard!');
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      try {
-        await navigator.clipboard.writeText(message);
-        alert('Copied to clipboard!');
-      } catch {
-        prompt('Copy this text to share:', message);
-      }
+      console.error('Share failed:', error);
+      prompt('Copy this text to share:', message);
     }
   };
 
