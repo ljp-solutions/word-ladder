@@ -10,7 +10,7 @@ import InvalidMoveModal from './InvalidMoveModal';
 import WinningMessage from "./WinningMessage";
 import type { TodayResult } from '../types';
 import Keyboard from "./Keyboard"; // ✅ Import the custom keyboard
-import { isFirstVisit, markFirstVisitComplete } from '../utils/localStorage';
+import { isFirstVisit, markFirstVisitComplete, saveGameState, loadGameState, clearGameState } from '../utils/localStorage';
 import { StatsModal } from './StatsModal';
 import { AnimatedInputRow } from './AnimatedInputRow';
 
@@ -91,6 +91,7 @@ export const GameBoard: React.FC = () => {
   const [gameWon, setGameWon] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [validMoves, setValidMoves] = useState<number[]>([]);
+  const [animatedRows, setAnimatedRows] = useState<number[]>([0]);
 
   const handleCustomKeyPress = (key: string) => {
     if (gameWon) {
@@ -221,6 +222,46 @@ export const GameBoard: React.FC = () => {
     }
   }, []);
 
+  // Load saved game state on mount
+  useEffect(() => {
+    if (!storageAvailable || isTestMode) return;
+    
+    const savedState = loadGameState();
+    if (savedState) {
+      // Ensure we have the empty input row at the end if game isn't won
+      const inputs = savedState.gameWon 
+        ? savedState.userInputs 
+        : [...savedState.userInputs, ['', '', '', '']];
+      
+      setUserInputs(inputs);
+      setValidMoves(savedState.validMoves);
+      setTurnsTaken(savedState.turnsTaken);
+      
+      // Always include 0 in animated rows
+      const savedAnimatedRows = savedState.animatedRows || [];
+      setAnimatedRows([0, ...savedAnimatedRows.filter(idx => idx !== 0)]);
+      
+      if (savedState.gameWon) {
+        setGameWon(true);
+        setGameState('won');
+      }
+    }
+  }, [isTestMode, storageAvailable]);
+
+  // Persist game state after each move
+  const persistGameState = useCallback(() => {
+    if (!storageAvailable || isTestMode) return;
+    
+    saveGameState({
+      userInputs,
+      validMoves,
+      gameDate: new Date().toDateString(),
+      turnsTaken,
+      gameWon,
+      animatedRows
+    });
+  }, [userInputs, validMoves, turnsTaken, gameWon, animatedRows, isTestMode, storageAvailable]);
+
   const clearCurrentRow = () => {
     setUserInputs(prev => {
       const newInputs = [...prev];
@@ -237,6 +278,7 @@ export const GameBoard: React.FC = () => {
 
     if (validationResult.isValid) {
         setValidMoves(prev => [...prev, rowIndex]);
+        setAnimatedRows(prev => [...prev, rowIndex]);
         const currentTurn = rowIndex + 1;
         setTurnsTaken(currentTurn);
 
@@ -244,18 +286,16 @@ export const GameBoard: React.FC = () => {
         const normalizedTarget = targetWord.toUpperCase();
         const won = normalizedNew === normalizedTarget;
 
-        // Calculate total animation time
-        const animationDuration = 600; // Base animation duration
-        const lastLetterDelay = 300; // Delay for last letter (3 * 100ms)
-        const buffer = 100; // Extra buffer
+        // Reduced animation timings
+        const animationDuration = 300; // Reduced from 600
+        const lastLetterDelay = 150; // Reduced from 300
+        const buffer = 50; // Reduced from 100
         const totalAnimationTime = animationDuration + lastLetterDelay + buffer;
 
         if (won) {
-            // Set game as won immediately but delay showing the message
             setGameWon(true);
             setGameState('won');
             
-            // Wait for animation to complete before showing winning message
             setTimeout(() => {
                 setShowWinningMessage(true);
                 setShowConfetti(true);
@@ -280,10 +320,14 @@ export const GameBoard: React.FC = () => {
             return;
         }
 
-        // For non-winning moves, wait for animation before adding new row
         setTimeout(() => {
             setUserInputs(prev => [...prev, ['', '', '', '']]);
         }, totalAnimationTime);
+
+        // Persist state after successful move
+        setTimeout(() => {
+          persistGameState();
+        }, 0);
     } else {
         console.warn("❌ Invalid move detected:", validationResult.reason);
         setInvalidMoveMessage(getInvalidMoveMessage(validationResult.reason));
@@ -420,6 +464,7 @@ export const GameBoard: React.FC = () => {
                     rowIndex={idx}
                     isActive={idx === userInputs.length - 1}
                     isValid={validMoves.includes(idx)}
+                    shouldAnimate={!animatedRows.includes(idx)} // Only animate rows that haven't been animated before
                   />
                 ))}
               </div>

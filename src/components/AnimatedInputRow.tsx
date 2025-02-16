@@ -4,20 +4,29 @@ interface AnimatedInputRowProps {
   userInput: string[];
   rowIndex: number;
   isActive: boolean;
-  isValid?: boolean;
+  isValid: boolean;
+  shouldAnimate: boolean; // Add this prop
 }
 
 export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({ 
   userInput, 
   rowIndex, 
   isActive,
-  isValid 
+  isValid,
+  shouldAnimate
 }) => {
   // Find the index of the first empty cell in active row
   const activeIndex = isActive ? userInput.findIndex(letter => letter === '') : -1;
 
+  // Only apply animation if shouldAnimate is true
+  const animation = shouldAnimate ? {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.3, delay: 0.1 }
+  } : {};
+
   return (
-    <div className="flex justify-center gap-3 px-2 py-1">
+    <motion.div {...animation} className="flex justify-center gap-3 px-2 py-1">
       {userInput.map((letter, index) => (
         <motion.div
           key={index}
@@ -49,6 +58,6 @@ export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({
           {letter || ""}
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 };
