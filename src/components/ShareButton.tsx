@@ -37,31 +37,15 @@ export const ShareButton: React.FC = () => {
       result.turns
     );
 
-    const shareData = {
-      text: message,
-      title: 'SWAPPLE - Daily Word Game',
-    };
-
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share(shareData);
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(message);
+    // Most basic mobile share
+    if (navigator.share) {
+      navigator.share({ text: message }).catch(() => {
+        navigator.clipboard.writeText(message);
         alert('Copied to clipboard!');
-      } else {
-        prompt('Copy this text to share:', message);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        return; // User canceled share, do nothing
-      }
-      // Fallback if sharing failed
-      try {
-        await navigator.clipboard.writeText(message);
-        alert('Copied to clipboard!');
-      } catch {
-        prompt('Copy this text to share:', message);
-      }
+      });
+    } else {
+      navigator.clipboard.writeText(message);
+      alert('Copied to clipboard!');
     }
   };
 
