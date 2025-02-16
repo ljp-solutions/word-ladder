@@ -24,7 +24,6 @@ export const ShareButton: React.FC = () => {
     const gameState = loadGameState();
     if (!gameState || !dailyGame) return;
 
-    // Get completed words (excluding start and target words)
     const completedWords = gameState.userInputs
       .filter(row => row.every(cell => cell !== ''))
       .map(row => row.join(''));
@@ -40,24 +39,43 @@ export const ShareButton: React.FC = () => {
       result.won,
       result.turns
     );
+
+    const shareData = {
+      text: message,
+      title: 'SWAPPLE - Daily Word Game',
+      url: 'https://word-ladder-omega.vercel.app/'
+    };
     
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: message });
-      } catch (error) {
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
         await navigator.clipboard.writeText(message);
+        alert('Copied to clipboard!');
       }
-    } else {
-      await navigator.clipboard.writeText(message);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(message);
+        alert('Copied to clipboard!');
+      } catch {
+        prompt('Copy this text to share:', message);
+      }
     }
   };
 
   return (
     <button
       onClick={handleShare}
-      className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+      className="px-6 py-2.5 text-sm font-medium
+        bg-green-700 text-white/90
+        rounded-lg transition-all duration-300
+        hover:bg-green-700 hover:scale-105 hover:shadow-lg
+        active:scale-95 backdrop-blur-sm
+        flex items-center justify-center gap-2"
     >
-      Share
+      <ShareIcon className="w-5 h-5" />
+      Share Result
     </button>
   );
 };
