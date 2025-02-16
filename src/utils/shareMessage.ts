@@ -23,7 +23,7 @@ export const formatShareMessage = (
 ): string => {
   const validAttempts = attempts.filter(attempt => attempt.length === 4);
   const gameResult = won ? `${turns} Moves` : 'X/8';
-  const header = `Swapple #${gameNumber}\n ${gameResult}\n`;
+  const header = `Swapple #${gameNumber}\n${gameResult}\n`;
   
   // Add separator line before boxes
   let message = '\n';

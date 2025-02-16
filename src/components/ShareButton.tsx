@@ -59,7 +59,6 @@ export const ShareButton: React.FC = () => {
         await navigator.share({
           title: "My Game Result",
           text: shareData,
-          url: window.location.href, // Optional: iOS likes having a URL
         });
         console.log("Share successful!");
         return; // ✅ Ensure we don't fallback if `share()` was successful
