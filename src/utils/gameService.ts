@@ -19,6 +19,15 @@ interface DailyGame {
   joker_steps: any; // JSONB field
 }
 
+// Add this helper function to calculate game number
+export const calculateGameNumber = (): number => {
+  const startDate = new Date('2025-02-01'); // First day the game was released
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - startDate.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays + 1;
+};
+
 export const saveGameResult = async (won: boolean, streak: number, turns: number): Promise<boolean> => {
     const payload = [{
       won,

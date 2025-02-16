@@ -92,6 +92,7 @@ export const GameBoard: React.FC = () => {
   const [showStats, setShowStats] = useState(false);
   const [validMoves, setValidMoves] = useState<number[]>([]);
   const [animatedRows, setAnimatedRows] = useState<number[]>([0]);
+  const [completedGuesses, setCompletedGuesses] = useState<string[]>([]);
 
   const handleCustomKeyPress = (key: string) => {
     if (gameWon) {
@@ -245,6 +246,12 @@ export const GameBoard: React.FC = () => {
         setGameWon(true);
         setGameState('won');
       }
+
+      // Add this: Set completed guesses from saved state
+      const savedGuesses = savedState.userInputs
+        .filter(row => row.every(cell => cell !== ''))
+        .map(row => row.join(''));
+      setCompletedGuesses(savedGuesses);
     }
   }, [isTestMode, storageAvailable]);
 
@@ -279,6 +286,7 @@ export const GameBoard: React.FC = () => {
     if (validationResult.isValid) {
         setValidMoves(prev => [...prev, rowIndex]);
         setAnimatedRows(prev => [...prev, rowIndex]);
+        setCompletedGuesses(prev => [...prev, newWord]); // Add this line
         const currentTurn = rowIndex + 1;
         setTurnsTaken(currentTurn);
 
@@ -297,6 +305,7 @@ export const GameBoard: React.FC = () => {
             setGameState('won');
             
             setTimeout(() => {
+                const currentTurn = rowIndex + 1;
                 setShowWinningMessage(true);
                 setShowConfetti(true);
                 setJustCompleted(true);
@@ -311,9 +320,11 @@ export const GameBoard: React.FC = () => {
                     streak: newStreak
                 };
 
+                // Store the true turn count in todayResult
                 localStorage.setItem("lastPlayedDate", new Date().toDateString());
                 localStorage.setItem("todayResult", JSON.stringify(resultData));
                 setTodayResult(resultData);
+                setTurnsTaken(currentTurn); // Update this as well for consistency
                 setHasPlayedToday(true);
             }, totalAnimationTime);
             
@@ -512,10 +523,12 @@ export const GameBoard: React.FC = () => {
           {showWinningMessage && (
             <div className="fixed inset-0 z-50" style={{ pointerEvents: 'auto' }}>
               <WinningMessage 
-                turnsTaken={turnsTaken} 
+                turnsTaken={todayResult?.turns || turnsTaken} // Use todayResult turns as primary source
                 onClose={handleWinningMessageClose}
                 onShowStats={handleShowStats}
-              />
+              >
+                <ShareButton />
+              </WinningMessage>
             </div>
           )}
           {showStats && (
