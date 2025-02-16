@@ -46,22 +46,32 @@ export const ShareButton: React.FC = () => {
   }, []);
 
   // ✅ Ensure handleClick is inside the component
-  const handleClick = () => {
+  const handleClick = async () => {
     if (!shareData) {
       console.error("No share data available");
       return;
     }
-
+  
     console.log("Attempting to share:", shareData);
-
+  
     if (navigator.share) {
-      navigator.share({ text: shareData })
-        .then(() => console.log("Share successful"))
-        .catch(() => fallbackCopyToClipboard());
-    } else {
-      fallbackCopyToClipboard();
+      try {
+        await navigator.share({
+          title: "My Game Result",
+          text: shareData,
+          url: window.location.href, // Optional: iOS likes having a URL
+        });
+        console.log("Share successful!");
+        return; // ✅ Ensure we don't fallback if `share()` was successful
+      } catch (error) {
+        console.error("Share failed:", error);
+      }
     }
+  
+    // If sharing isn't supported or fails, copy to clipboard instead
+    fallbackCopyToClipboard();
   };
+  
 
   const fallbackCopyToClipboard = () => {
     if (!shareData) return;
