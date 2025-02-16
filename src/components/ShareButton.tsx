@@ -40,25 +40,22 @@ export const ShareButton: React.FC = () => {
       result.turns
     );
 
-    try {
-      // Try native sharing first
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        try {
-          await navigator.share({
-            text: message
-          });
-          return;
-        } catch (err) {
-          console.log('Native share failed, falling back to clipboard', err);
-        }
-      }
+    const shareData = {
+      text: message,
+      title: 'SWAPPLE - Daily Word Game'
+    };
 
-      // Fallback to clipboard
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        await navigator.clipboard.writeText(message);
+        alert('Copied to clipboard!');
+      }
+    } else {
       await navigator.clipboard.writeText(message);
       alert('Copied to clipboard!');
-    } catch (error) {
-      console.error('Share failed:', error);
-      prompt('Copy this text to share:', message);
     }
   };
 
