@@ -45,21 +45,45 @@ export const ShareButton: React.FC = () => {
     prepareShareData();
   }, []);
 
+  // ✅ Ensure handleClick is inside the component
   const handleClick = () => {
-    if (!shareData) return;
+    if (!shareData) {
+      console.error("No share data available");
+      return;
+    }
 
-    // Direct user interaction - should work in Safari
+    console.log("Attempting to share:", shareData);
+
     if (navigator.share) {
       navigator.share({ text: shareData })
-        .catch(() => {
-          navigator.clipboard.writeText(shareData);
-          alert('Copied to clipboard!');
-        });
+        .then(() => console.log("Share successful"))
+        .catch(() => fallbackCopyToClipboard());
     } else {
-      navigator.clipboard.writeText(shareData);
-      alert('Copied to clipboard!');
+      fallbackCopyToClipboard();
     }
   };
+
+  const fallbackCopyToClipboard = () => {
+    if (!shareData) return;
+
+    console.log("Attempting to copy:", shareData);
+    
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(shareData)
+        .then(() => alert("Copied to clipboard!"))
+        .catch((err) => console.error("Clipboard write failed:", err));
+    } else {
+      console.warn("Clipboard API not supported, using old method.");
+      const textarea = document.createElement("textarea");
+      textarea.value = shareData;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      alert("Copied to clipboard!");
+    }
+  };
+
 
   return (
     <button
