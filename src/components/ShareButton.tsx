@@ -11,10 +11,7 @@ export const ShareButton: React.FC = () => {
     const loadGame = async () => {
       const gameData = await fetchDailyGame();
       if (gameData) {
-        setDailyGame({
-          start_word: gameData.start_word,
-          target_word: gameData.target_word
-        });
+        setDailyGame(gameData);
       }
     };
     loadGame();
@@ -42,20 +39,29 @@ export const ShareButton: React.FC = () => {
 
     const shareData = {
       text: message,
-      title: 'SWAPPLE - Daily Word Game'
+      title: 'SWAPPLE - Daily Word Game',
     };
 
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
         await navigator.share(shareData);
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') return;
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(message);
         alert('Copied to clipboard!');
+      } else {
+        prompt('Copy this text to share:', message);
       }
-    } else {
-      await navigator.clipboard.writeText(message);
-      alert('Copied to clipboard!');
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return; // User canceled share, do nothing
+      }
+      // Fallback if sharing failed
+      try {
+        await navigator.clipboard.writeText(message);
+        alert('Copied to clipboard!');
+      } catch {
+        prompt('Copy this text to share:', message);
+      }
     }
   };
 
