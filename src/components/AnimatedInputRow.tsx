@@ -15,17 +15,18 @@ export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({
   isValid,
   shouldAnimate
 }) => {
-  // Wave animation variants
+  // Dramatically enhanced wave animation
   const waveVariants = {
-    initial: { y: 0, scale: 1 },
+    initial: { y: 0, scale: 1, rotate: 0 },
     animate: (index: number) => ({
-      y: [0, -8, 0],
-      scale: [1, 1.08, 1],
+      y: [0, -30, 0],  // Much higher jump - doubled from previous
+      scale: [1, 1.25, 1],  // More dramatic scale change
+      rotate: [0, index % 2 === 0 ? 6 : -6, 0],  // Doubled rotation for more emphasis
       transition: {
-        duration: 0.3,
-        delay: index * 0.05, // Staggered delay for wave effect
-        ease: [0.22, 1, 0.36, 1], // Custom easing for snappy feel
-        times: [0, 0.5, 1] // Control timing of keyframes
+        duration: 0.4,  // Slightly longer duration to make it more noticeable
+        delay: index * 0.07,  // Increased delay between letters for more wave-like effect
+        ease: [0.12, 0.8, 0.3, 1],  // More exaggerated "bounce" easing
+        times: [0, 0.5, 1]  // Equal time up and down
       }
     })
   };
@@ -52,7 +53,8 @@ export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({
           animate={isValid ? "animate" : "initial"}
           style={{
             transformStyle: "preserve-3d",
-            boxShadow: isValid ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none"
+            boxShadow: isValid ? "0 5px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1)" : "none",
+            transformOrigin: "bottom center" // Makes the jump feel more natural
           }}
         >
           {letter || ""}
