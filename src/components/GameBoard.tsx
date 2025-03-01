@@ -279,77 +279,80 @@ export const GameBoard: React.FC = () => {
 
   const handleMove = async (newWord: string, rowIndex: number) => {
     if (!startWord || !targetWord || gameWon) return;
-
+  
     const lastWord = userInputs[rowIndex - 1]?.join('') || startWord;
     const validationResult = await isValidMove(lastWord, newWord);
-
+  
     if (validationResult.isValid) {
-        setValidMoves(prev => [...prev, rowIndex]);
-        setAnimatedRows(prev => [...prev, rowIndex]);
-        setCompletedGuesses(prev => [...prev, newWord]); // Add this line
-        const currentTurn = rowIndex + 1;
-        setTurnsTaken(currentTurn);
-
-        const normalizedNew = newWord.toUpperCase();
-        const normalizedTarget = targetWord.toUpperCase();
-        const won = normalizedNew === normalizedTarget;
-
-        // Reduced animation timings
-        const animationDuration = 300; // Reduced from 600
-        const lastLetterDelay = 150; // Reduced from 300
-        const buffer = 50; // Reduced from 100
-        const totalAnimationTime = animationDuration + lastLetterDelay + buffer;
-
-        if (won) {
-            setGameWon(true);
-            setGameState('won');
-            
-            setTimeout(() => {
-                const currentTurn = rowIndex + 1;
-                setShowWinningMessage(true);
-                setShowConfetti(true);
-                setJustCompleted(true);
-
-                const newStreak = updateStats(true, currentTurn);
-                saveGameResult(true, newStreak, currentTurn).catch(console.error);
-
-                const resultData: TodayResult = {
-                    word: newWord,
-                    won: true,
-                    turns: currentTurn,
-                    streak: newStreak
-                };
-
-                // Store the true turn count in todayResult
-                localStorage.setItem("lastPlayedDate", new Date().toDateString());
-                localStorage.setItem("todayResult", JSON.stringify(resultData));
-                setTodayResult(resultData);
-                setTurnsTaken(currentTurn); // Update this as well for consistency
-                setHasPlayedToday(true);
-            }, totalAnimationTime);
-            
-            return;
+      // Animation timing calculations for wave effect
+      const WAVE_DURATION = 300; // Base duration for animation
+      const LETTER_STAGGER = 50; // 50ms between each letter
+      const LETTER_COUNT = 4; // Number of letters
+      const BUFFER = 100; // Additional buffer time
+      
+      // Total time needed for all animations to complete
+      const TOTAL_ANIMATION_TIME = WAVE_DURATION + (LETTER_STAGGER * (LETTER_COUNT - 1)) + BUFFER;
+  
+      // Set states for current row validation
+      setValidMoves(prev => [...prev, rowIndex]);
+      setAnimatedRows(prev => [...prev, rowIndex]);
+      setCompletedGuesses(prev => [...prev, newWord]);
+      
+      const currentTurn = rowIndex + 1;
+      setTurnsTaken(currentTurn);
+  
+      const won = newWord.toUpperCase() === targetWord?.toUpperCase();
+  
+      // Wait for wave animation to complete
+      await new Promise(resolve => setTimeout(resolve, TOTAL_ANIMATION_TIME));
+  
+      // Handle game state changes after animation completes
+      if (won) {
+        setGameWon(true);
+        setGameState('won');
+        
+        const newStreak = updateStats(true, currentTurn);
+        saveGameResult(true, newStreak, currentTurn).catch(console.error);
+  
+        const resultData: TodayResult = {
+          word: newWord,
+          won: true,
+          turns: currentTurn,
+          streak: newStreak
+        };
+  
+        if (storageAvailable) {
+          localStorage.setItem("lastPlayedDate", new Date().toDateString());
+          localStorage.setItem("todayResult", JSON.stringify(resultData));
         }
-
+        
+        setTodayResult(resultData);
+        setShowWinningMessage(true);
+        setShowConfetti(true);
+        setJustCompleted(true);
+        setHasPlayedToday(true);
+      } else {
+        // Add new row only after animation completes
+        setUserInputs(prev => [...prev, ['', '', '', '']]);
+        
+        // Scroll smoothly to the new row with a slight delay for better UX
         setTimeout(() => {
-            setUserInputs(prev => [...prev, ['', '', '', '']]);
-        }, totalAnimationTime);
-
-        // Persist state after successful move
-        setTimeout(() => {
-          persistGameState();
-        }, 0);
+          if (containerRef.current) {
+            containerRef.current.scrollTo({
+              top: containerRef.current.scrollHeight,
+              behavior: "smooth"
+            });
+          }
+        }, 50);
+      }
+  
+      // Persist game state
+      persistGameState();
     } else {
-        console.warn("❌ Invalid move detected:", validationResult.reason);
-        setInvalidMoveMessage(getInvalidMoveMessage(validationResult.reason));
-        
-        // Clear the current row
-        clearCurrentRow();
-        
-        // Set a timeout to hide the message and ensure focus is set after animation
-        setTimeout(() => {
-            setInvalidMoveMessage(null);
-        }, 3000);
+      console.warn("❌ Invalid move detected:", validationResult.reason);
+      setInvalidMoveMessage(getInvalidMoveMessage(validationResult.reason));
+      clearCurrentRow();
+      setTimeout(() => setInvalidMoveMessage(null), 3000);
     }
   };
 
@@ -364,27 +367,6 @@ export const GameBoard: React.FC = () => {
     }
   }, [userInputs]);
 
-  useEffect(() => {
-    if (userInputs.length > 1) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const firstInput = inputRefs.current[(userInputs.length - 1) * 4];
-          if (firstInput) {
-            firstInput.focus({ preventScroll: true }); // Focus the first box of the new row
-          }
-          // Ensure scrolling to the bottom of the input area
-          if (containerRef.current) {
-            containerRef.current.scrollTo({
-              top: containerRef.current.scrollHeight,
-              behavior: "smooth", // Smooth scrolling animation
-            });
-          }
-        });
-      });
-    }
-  }, [userInputs]);
-  
-  
   const handleInputChange = (rowIndex: number, index: number, value: string) => {
     if (value.length > 1) return;
     

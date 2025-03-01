@@ -5,7 +5,7 @@ interface AnimatedInputRowProps {
   rowIndex: number;
   isActive: boolean;
   isValid: boolean;
-  shouldAnimate: boolean; // Add this prop
+  shouldAnimate: boolean;
 }
 
 export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({ 
@@ -15,18 +15,23 @@ export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({
   isValid,
   shouldAnimate
 }) => {
-  // Find the index of the first empty cell in active row
-  const activeIndex = isActive ? userInput.findIndex(letter => letter === '') : -1;
-
-  // Only apply animation if shouldAnimate is true
-  const animation = shouldAnimate ? {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.3, delay: 0.1 }
-  } : {};
+  // Wave animation variants
+  const waveVariants = {
+    initial: { y: 0, scale: 1 },
+    animate: (index: number) => ({
+      y: [0, -8, 0],
+      scale: [1, 1.08, 1],
+      transition: {
+        duration: 0.3,
+        delay: index * 0.05, // Staggered delay for wave effect
+        ease: [0.22, 1, 0.36, 1], // Custom easing for snappy feel
+        times: [0, 0.5, 1] // Control timing of keyframes
+      }
+    })
+  };
 
   return (
-    <motion.div {...animation} className="flex justify-center gap-3 px-2 py-1">
+    <motion.div className="flex justify-center gap-3 px-2 py-1">
       {userInput.map((letter, index) => (
         <motion.div
           key={index}
@@ -34,25 +39,20 @@ export const AnimatedInputRow: React.FC<AnimatedInputRowProps> = ({
             w-14 h-14 md:w-16 md:h-16 uppercase text-3xl md:text-4xl 
             flex items-center justify-center transition-all duration-200
             ${isActive 
-              ? index === activeIndex
-                ? 'bg-gray-600' // Active cell
+              ? index === userInput.findIndex(letter => letter === '')
+                ? 'bg-gray-600' 
                 : letter 
-                  ? 'bg-gray-700' // Filled cell in active row
-                  : 'bg-gray-700/50' // Empty cell in active row
-              : 'bg-gray-800/50' // Inactive row
+                  ? 'bg-gray-700'
+                  : 'bg-gray-700/50'
+              : 'bg-gray-800/50' 
             }`}
-          animate={isValid ? {
-            rotateY: [0, 180, 360],
-            scale: [1, 1.1, 1],
-            transition: { 
-              duration: 0.6, // Faster rotation
-              delay: index * 0.1, // Quicker cascade
-              ease: "easeInOut" // Smoother rotation
-            }
-          } : {}}
+          variants={waveVariants}
+          custom={index}
+          initial="initial"
+          animate={isValid ? "animate" : "initial"}
           style={{
-            perspective: "1000px",
-            transformStyle: "preserve-3d"
+            transformStyle: "preserve-3d",
+            boxShadow: isValid ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none"
           }}
         >
           {letter || ""}
